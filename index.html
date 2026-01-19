@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.0"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            deepBlue: '#1e3a8a',
+            highlight: '#f97316',
+          },
+          animation: {
+            'slide-in-right': 'slideInRight 0.5s ease-out forwards',
+            'pulse-fast': 'pulse 0.8s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+          },
+          keyframes: {
+            slideInRight: {
+              '0%': { opacity: '0', transform: 'translateX(20px)' },
+              '100%': { opacity: '1', transform: 'translateX(0)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    
+    .spinner {
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border-left-color: #f97316;
+      animation: spin 1s ease infinite;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    
+    /* Text Gradient Effect */
+    .text-gradient-gold {
+      background: linear-gradient(to right, #b45309, #d97706, #f59e0b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .text-gradient-red {
+      background: linear-gradient(to right, #991b1b, #dc2626, #ef4444);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .text-gradient-purple {
+      background: linear-gradient(to right, #6b21a8, #a855f7, #d8b4fe);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .text-gradient-zen {
+      background: linear-gradient(to right, #374151, #6b7280, #9ca3af);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    /* Neon Text Shadow for Badges */
+    .text-glow {
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(255, 165, 0, 0.5);
+    }
+    
+    /* Smooth Scroll */
+    html {
+      scroll-behavior: smooth;
+    }
+
+    /* Fade Transition Classes for Quiz Blocks */
+    .quiz-block {
+      transition: opacity 0.3s ease-in-out;
+    }
+    .quiz-block-hidden {
+      display: none;
+      opacity: 0;
+    }
+    .quiz-block-visible {
+      display: block;
+      opacity: 1;
+    }
+
+    /* Occasional Shine Animation for Logo */
+    @keyframes occasional-shine {
+      0%, 80% { text-shadow: none; filter: brightness(1); }
+      85% { text-shadow: 0 0 15px rgba(255,255,255,0.8), 0 0 30px rgba(249, 115, 22, 0.6); filter: brightness(1.3); }
+      90% { text-shadow: none; filter: brightness(1); }
+      100% { text-shadow: none; filter: brightness(1); }
+    }
+    .animate-shine-slow {
+      animation: occasional-shine 6s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col">
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="fixed inset-0 bg-white bg-opacity-90 z-50 flex flex-col items-center justify-center hidden">
+    <div class="spinner mb-4"></div>
+    <p class="text-deepBlue font-semibold" id="loading-text">Đang xử lý...</p>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div id="confirm-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 hidden transition-opacity duration-300">
+    <div class="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 transform transition-all scale-100 border-t-4 border-highlight">
+      <div class="flex items-center gap-3 mb-4 text-highlight">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        <h3 class="text-3xl font-bold text-highlight">Xác nhận nộp bài</h3>
+      </div>
+      <p id="confirm-modal-text" class="text-gray-600 mb-6 leading-relaxed">...</p>
+      <div class="flex justify-end gap-3">
+        <button onclick="closeConfirmModal()" class="px-5 py-2.5 rounded-lg border border-blue-200 text-blue-700 font-bold hover:bg-blue-50 transition focus:outline-none focus:ring-2 focus:ring-blue-300">
+          Quay lại làm tiếp
+        </button>
+        <button id="confirm-modal-btn" class="px-5 py-2.5 rounded-lg bg-highlight text-white font-bold hover:bg-orange-600 shadow-lg transition focus:outline-none focus:ring-2 focus:ring-orange-500">
+          Vẫn nộp bài
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class="bg-deepBlue text-white p-4 shadow-lg sticky top-0 z-40">
+    <div class="container mx-auto flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <h1 class="text-2xl font-bold tracking-wide animate-shine-slow cursor-default">SOL<span class="text-highlight">Quiz</span></h1>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-grow container mx-auto p-4 md:p-6 relative">
+
+    <!-- VIEW 1: HOME -->
+    <div id="view-home" class="view-section animate-fade-in">
+      <div class="max-w-4xl mx-auto grid md:grid-cols-2 gap-8 mt-10">
+        <!-- Student Panel -->
+        <div class="bg-white p-8 rounded-xl shadow-md border-t-4 border-highlight order-1 md:order-2">
+          <h2 class="text-2xl font-bold text-deepBlue mb-2">Dành cho Thí sinh</h2>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Danh sách bài thi</label>
+            <select id="student-test-select" class="w-full p-3 border border-gray-300 rounded focus:ring-2 focus:ring-deepBlue focus:outline-none bg-white text-gray-900">
+              <option value="" disabled selected>Đang tải dữ liệu...</option>
+            </select>
+          </div>
+          <button onclick="startQuizFlow()" class="w-full bg-deepBlue hover:bg-blue-800 text-white font-bold py-3 px-4 rounded transition duration-200">
+            Vào phòng thi
+          </button>
+        </div>
+
+        <!-- Admin Panel -->
+        <div class="bg-white p-8 rounded-xl shadow-md border-t-4 border-deepBlue order-2 md:order-1">
+          <h2 class="text-2xl font-bold text-highlight mb-2">Quản trị viên</h2>
+          <div class="space-y-4">
+            <div><label class="block text-sm">Tài khoản</label><input type="text" id="admin-user" class="w-full p-3 border rounded bg-white text-gray-900" placeholder="admin"></div>
+            <div><label class="block text-sm">Mật khẩu</label><input type="password" id="admin-pass" class="w-full p-3 border rounded bg-white text-gray-900" placeholder="123456"></div>
+            <button onclick="handleAdminLogin()" class="w-full bg-highlight hover:bg-orange-600 text-white font-bold py-3 rounded transition shadow-md">Đăng nhập</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 2: ADMIN DASHBOARD -->
+    <div id="view-admin" class="view-section hidden">
+      <div class="max-w-7xl mx-auto">
+        <div class="flex justify-between items-end mb-6 border-b pb-4">
+          <h2 class="text-3xl font-bold text-deepBlue">Bảng điều khiển</h2>
+          <button onclick="exitAdminView()" class="text-gray-500 hover:text-deepBlue">Đăng xuất</button>
+        </div>
+        
+        <!-- Controls -->
+        <div class="bg-white p-6 rounded-lg shadow mb-8 flex gap-4 items-end">
+          <div class="flex-grow">
+            <label class="block text-sm font-medium mb-1">Chọn bài thi để xem báo cáo</label>
+            <select id="admin-test-select" class="w-full p-2 border rounded bg-white text-gray-900"></select>
+          </div>
+          <button onclick="loadResults()" class="bg-highlight text-white font-bold py-2 px-6 rounded h-10 shadow hover:bg-orange-600 transition">
+             Xem báo cáo (Realtime)
+          </button>
+        </div>
+
+        <div id="admin-dashboard-content" class="hidden">
+           
+           <!-- Section 1: Chart -->
+           <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+             <h3 class="text-3xl font-extrabold text-deepBlue mb-4 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-highlight" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Biểu đồ kết quả thí sinh
+             </h3>
+             <div class="h-[400px] w-full">
+                <canvas id="adminResultsChart"></canvas>
+             </div>
+           </div>
+
+           <!-- Section 2: Special Badges -->
+           <div class="grid md:grid-cols-2 gap-8 mb-8">
+              <!-- Badges omitted for brevity but preserved from previous context -->
+              <div id="badge-god" class="bg-gradient-to-r from-yellow-50 to-white border-4 border-yellow-400 p-8 rounded-2xl shadow-2xl relative overflow-hidden hidden text-center transform hover:scale-105 transition duration-300">
+                 <div class="absolute -right-6 -top-6 text-yellow-200 opacity-20"><svg xmlns="http://www.w3.org/2000/svg" class="h-48 w-48" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.699-3.181a1 1 0 111.768.951l-1.778 3.329 1.954 3.908a1 1 0 11-1.79 .894L13.824 8.05 11 9.18V18a1 1 0 11-2 0V9.18l-2.824-1.13-2.032 3.844a1 1 0 11-1.79-.894l1.954-3.908-1.778-3.329a1 1 0 111.768-.951L7.046 4.323V3a1 1 0 011-1z" clip-rule="evenodd" /></svg></div>
+                 <h4 class="text-gradient-gold text-3xl font-black uppercase tracking-widest mb-2 drop-shadow-md animate-pulse-fast">🏆 Danh hiệu: Chiến Thần</h4>
+                 <p class="text-xs font-semibold text-yellow-700 mb-4 uppercase tracking-wide bg-yellow-100 inline-block px-3 py-1 rounded-full border border-yellow-200">Nhanh nhất + Điểm cao nhất</p>
+                 <div class="relative z-10">
+                    <p class="text-3xl font-extrabold text-gray-800" id="god-name">Nguyen Van A</p>
+                    <div class="mt-4 inline-block bg-blue-50 px-6 py-3 rounded-xl border border-blue-100 shadow-inner"><p class="text-base font-bold text-deepBlue" id="god-desc">...</p></div>
+                 </div>
+              </div>
+
+              <div id="badge-furious" class="bg-gradient-to-r from-red-50 to-white border-4 border-red-400 p-8 rounded-2xl shadow-2xl relative overflow-hidden hidden text-center transform hover:scale-105 transition duration-300">
+                 <div class="absolute -right-6 -top-6 text-red-200 opacity-20"><svg xmlns="http://www.w3.org/2000/svg" class="h-48 w-48" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" /></svg></div>
+                 <h4 class="text-gradient-red text-3xl font-black uppercase tracking-widest mb-2 drop-shadow-md animate-pulse-fast">⚡ Danh hiệu: Quá Nhanh - Quá Nguy Hiểm</h4>
+                 <p class="text-xs font-semibold text-red-700 mb-4 uppercase tracking-wide bg-red-100 inline-block px-3 py-1 rounded-full border border-red-200">Nhanh nhất trong những người fail</p>
+                 <div class="relative z-10">
+                    <p class="text-3xl font-extrabold text-gray-800" id="furious-name">Tran Van B</p>
+                    <div class="mt-4 inline-block bg-blue-50 px-6 py-3 rounded-xl border border-blue-100 shadow-inner"><p class="text-xl font-bold text-deepBlue" id="furious-desc">Nhanh nhất (nhưng rớt)</p></div>
+                 </div>
+              </div>
+              
+              <div id="badge-hint" class="bg-gradient-to-r from-purple-50 to-white border-4 border-purple-400 p-8 rounded-2xl shadow-2xl relative overflow-hidden hidden text-center transform hover:scale-105 transition duration-300">
+                 <div class="absolute -right-6 -top-6 text-purple-200 opacity-20"><svg xmlns="http://www.w3.org/2000/svg" class="h-48 w-48" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg></div>
+                 <h4 class="text-gradient-purple text-3xl font-black uppercase tracking-widest mb-2 drop-shadow-md animate-pulse-fast">💡 Danh hiệu: Thánh bấm Gợi ý</h4>
+                 <p class="text-xs font-semibold text-purple-700 mb-4 uppercase tracking-wide bg-purple-100 inline-block px-3 py-1 rounded-full border border-purple-200">Sử dụng Gợi ý nhiều nhất</p>
+                 <div class="relative z-10">
+                    <p class="text-3xl font-extrabold text-gray-800" id="hint-name">Nguyen Van C</p>
+                    <div class="mt-4 inline-block bg-purple-50 px-6 py-3 rounded-xl border border-purple-100 shadow-inner"><p class="text-base font-bold text-purple-900" id="hint-desc">Số lần dùng Gợi ý: 10</p></div>
+                 </div>
+              </div>
+              
+              <div id="badge-zen" class="bg-gradient-to-r from-gray-50 to-white border-4 border-gray-400 p-8 rounded-2xl shadow-2xl relative overflow-hidden hidden text-center transform hover:scale-105 transition duration-300">
+                 <div class="absolute -right-6 -top-6 text-gray-200 opacity-20"><svg xmlns="http://www.w3.org/2000/svg" class="h-48 w-48" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" /></svg></div>
+                 <h4 class="text-gradient-zen text-3xl font-black uppercase tracking-widest mb-2 drop-shadow-md animate-pulse-fast">🧘 Danh hiệu: Thiền sư Submit</h4>
+                 <p class="text-xs font-semibold text-gray-600 mb-4 uppercase tracking-wide bg-gray-200 inline-block px-3 py-1 rounded-full border border-gray-300">Nộp bài cuối cùng</p>
+                 <div class="relative z-10">
+                    <p class="text-3xl font-extrabold text-gray-800" id="zen-name">Le Van D</p>
+                    <div class="mt-4 inline-block bg-gray-100 px-6 py-3 rounded-xl border border-gray-200 shadow-inner"><p class="text-base font-bold text-gray-800" id="zen-desc">Nộp bài cuối cùng</p></div>
+                 </div>
+              </div>
+           </div>
+
+           <!-- Section 3: Pass List -->
+           <div class="bg-white rounded-xl shadow overflow-hidden">
+             <div class="bg-green-600 px-6 py-4 flex justify-between items-center">
+               <h3 class="text-white font-bold text-2xl">Danh sách Pass Test</h3>
+               <span class="bg-green-700 text-green-100 text-sm px-3 py-1 rounded">Sắp xếp theo điểm</span>
+             </div>
+             <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-6 py-4 text-left text-xl font-bold text-gray-500 uppercase">Hạng</th>
+                    <th class="px-6 py-4 text-left text-xl font-bold text-gray-500 uppercase">Thí sinh</th>
+                    <th class="px-6 py-4 text-left text-xl font-bold text-gray-500 uppercase">Vị trí</th>
+                    <th class="px-6 py-4 text-left text-xl font-bold text-gray-500 uppercase">Tổng điểm</th>
+                    <th class="px-6 py-4 text-left text-xl font-bold text-gray-500 uppercase">Gợi ý</th>
+                  </tr>
+                </thead>
+                <tbody id="pass-list-body" class="bg-white divide-y divide-gray-200"></tbody>
+             </table>
+           </div>
+        </div>
+        <div id="admin-empty-msg" class="text-center py-12 text-gray-500 italic hidden">Chưa có dữ liệu cho bài thi này.</div>
+      </div>
+    </div>
+
+    <!-- VIEW 3: QUIZ CONTAINER -->
+    <div id="view-quiz" class="view-section hidden">
+      
+      <!-- GIAO DIỆN 3.1: NHẬP THÔNG TIN (ENTRY FORM) -->
+      <div id="quiz-entry-form" class="max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-lg mt-10 border-t-4 border-deepBlue">
+        <div class="text-center mb-8">
+          <!-- UPDATE: Reduced text size to 26px (approx 0.9x of previous 29px) -->
+          <h2 class="text-[26px] font-bold text-deepBlue uppercase">Thông tin thí sinh</h2>
+          <p class="mt-4"><span class="font-bold text-green-600 text-xl">Bài thi: </span><span id="entry-quiz-title" class="font-bold text-green-600 text-xl">...</span></p>
+        </div>
+        
+        <div class="space-y-6">
+          <div>
+            <label class="block text-xl font-bold text-deepBlue mb-2">Tên - Nickname <span class="text-red-500">*</span></label>
+            <input type="text" id="candidate-name" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-deepBlue focus:outline-none bg-gray-50 text-lg" placeholder="VD: Ms Thư - Ashley">
+            <span id="error-name" class="hidden text-red-500 text-xs animate-pulse-fast font-bold ml-1 pt-1 block">⚠️ Vui lòng điền Tên/Nickname</span>
+          </div>
+          <div>
+            <label class="block text-xl font-bold text-deepBlue mb-2">Chức danh hiện tại: <span class="text-red-500">*</span></label>
+            <input type="text" id="candidate-position" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-deepBlue focus:outline-none bg-gray-50 text-lg" placeholder="Ví dụ: Giáo viên">
+            <span id="error-position" class="hidden text-red-500 text-xs animate-pulse-fast font-bold ml-1 pt-1 block">⚠️ Vui lòng điền Chức danh</span>
+          </div>
+          
+          <div class="pt-4">
+             <div class="flex flex-col-reverse md:flex-row gap-4">
+                 <button onclick="returnToHome()" class="md:w-1/3 w-full bg-gray-200 hover:bg-green-600 hover:text-white text-gray-600 font-bold text-lg py-4 rounded-lg shadow transition">
+                   Quay lại
+                 </button>
+                 <button onclick="handleStartActualQuiz()" class="md:w-2/3 w-full bg-highlight hover:bg-orange-600 text-white hover:text-deepBlue font-bold text-xl py-4 rounded-lg shadow-lg transition transform hover:-translate-y-1">
+                   BẮT ĐẦU LÀM BÀI
+                 </button>
+             </div>
+            <p class="text-center text-base text-green-600 mt-4 italic font-medium">Lưu ý: Thời gian sẽ bắt đầu tính ngay khi bạn nhấn nút này.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- GIAO DIỆN 3.2: LÀM BÀI THI (INTERFACE) - Ẩn mặc định -->
+      <div id="quiz-interface" class="flex flex-col lg:flex-row gap-6 max-w-7xl mx-auto hidden">
+        <aside class="lg:w-1/4">
+          <div class="bg-white p-6 rounded-xl shadow-lg sticky top-24 border-t-4 border-deepBlue">
+            <!-- Timer & Info -->
+            <div class="text-center mb-4">
+              <!-- UPDATE: Changed text style to green and larger -->
+              <span class="text-green-600 text-xl uppercase font-bold">Thời gian còn lại</span>
+              <div id="timer-display" class="text-4xl font-mono font-bold text-highlight mt-1 transition-transform duration-200 origin-center">00:00</div>
+            </div>
+            
+            <hr class="my-4 border-gray-200">
+            
+            <!-- Question Map -->
+            <div class="mb-4">
+              <!-- UPDATE: Changed text size and added progress display -->
+              <h4 class="text-xl font-bold text-deepBlue uppercase mb-2">
+                Danh sách câu hỏi <span id="progress-display" class="text-base text-highlight ml-1"></span>
+              </h4>
+              
+              <!-- Legend -->
+              <div class="flex gap-2 mb-3 text-[10px] font-bold">
+                 <div class="flex items-center gap-1">
+                   <span class="w-3 h-3 bg-orange-400 rounded-sm"></span> Chưa làm
+                 </div>
+                 <div class="flex items-center gap-1">
+                   <span class="w-3 h-3 bg-green-500 rounded-sm"></span> Đã làm
+                 </div>
+              </div>
+              
+              <!-- Grid Container -->
+              <div id="question-nav-grid" class="grid grid-cols-5 gap-2">
+                 <!-- Buttons will be injected here -->
+              </div>
+            </div>
+
+            <hr class="my-4 border-gray-200">
+
+            <div class="mb-2">
+              <span class="block text-xs text-gray-400">Đề thi</span>
+              <span id="quiz-title-display" class="font-semibold text-deepBlue truncate block">...</span>
+            </div>
+            <div class="mb-2">
+              <span class="block text-xs text-gray-400">Thí sinh</span>
+              <span id="display-candidate-name" class="font-semibold text-gray-800 truncate block">...</span>
+            </div>
+            <button type="button" onclick="submitQuiz()" class="w-full mt-4 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded shadow">Nộp bài</button>
+          </div>
+        </aside>
+        
+        <div class="lg:w-3/4">
+          <div id="questions-container" class="min-h-[500px]">
+             <!-- Questions grouped by blocks will be injected here -->
+          </div>
+          
+          <!-- Optional: Bottom Navigation controls if needed, but sidebar is primary -->
+          <div class="flex justify-between mt-6 px-4">
+             <button onclick="changeBlock(-1)" class="text-gray-500 hover:text-deepBlue font-bold" id="btn-prev-block">← Trước</button>
+             <button onclick="changeBlock(1)" class="text-gray-500 hover:text-deepBlue font-bold" id="btn-next-block">Sau →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 4: RESULT -->
+    <div id="view-result" class="view-section hidden">
+      <div class="max-w-7xl mx-auto">
+        <div class="flex flex-col lg:flex-row gap-8">
+          
+          <!-- LEFT COLUMN: PERSONAL RESULTS (2/3 width) -->
+          <div class="w-full lg:w-2/3">
+            <div class="bg-white p-5 rounded-2xl shadow-xl text-center border-t-8 border-green-500 mb-5">
+              <div class="w-14 h-14 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-2 text-2xl">✓</div>
+              <h2 class="text-3xl font-bold text-highlight uppercase">Chúc mừng bạn đã hoàn thành bài thi!</h2>
+              
+              <div class="mt-2 mb-2">
+                 <h3 id="result-candidate-name" class="text-3xl font-bold text-deepBlue leading-tight">...</h3>
+                 <p id="result-candidate-position" class="text-xs text-gray-500 font-medium mt-1 uppercase tracking-wide">...</p>
+              </div>
+              
+              <div class="mt-2 p-3 bg-gray-50 rounded-lg inline-block min-w-[200px]">
+                 <span class="block text-base text-green-600 uppercase tracking-widest font-bold">Total Score</span>
+                 <span id="final-score-display" class="block text-4xl font-extrabold text-deepBlue mt-1">--</span>
+              </div>
+              <div class="mt-1 text-xs text-gray-500">
+                  <span>Số gợi ý đã dùng: </span>
+                  <span id="final-hints-display" class="font-bold text-orange-600">0</span>
+              </div>
+              
+              <div class="mt-4">
+                 <button onclick="returnToHome()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full shadow-md transition transform hover:-translate-y-0.5 text-sm">Về trang chủ</button>
+              </div>
+            </div>
+
+            <div class="flex justify-center mb-8">
+               <button onclick="scrollToLiveFeed()" class="group flex items-center gap-2 px-5 py-2 bg-white border border-blue-200 rounded-full shadow-sm hover:shadow-md hover:border-blue-400 transition cursor-pointer text-blue-600">
+                  <span class="font-bold text-sm group-hover:underline">Xem Danh sách thí sinh nộp bài</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                  </svg>
+               </button>
+            </div>
+
+            <div class="flex items-center gap-3 mb-6 mt-2 border-b-2 border-gray-100 pb-2">
+                <div class="w-1.5 h-8 bg-highlight rounded-full"></div>
+                <h3 class="text-2xl font-extrabold text-highlight uppercase tracking-wide">Chi tiết bài làm (Review)</h3>
+            </div>
+            
+            <div id="result-details" class="space-y-6"></div>
+            <div class="h-20"></div>
+          </div>
+
+          <!-- RIGHT COLUMN: LIVE FEED (1/3 width, Sticky) -->
+          <div class="w-full lg:w-1/3" id="live-feed-container">
+            <div class="sticky top-24">
+              <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+                <div class="bg-deepBlue p-4 flex flex-col justify-between">
+                  <div class="flex items-center justify-between mb-1">
+                     <h3 class="text-white font-bold flex items-center gap-2 text-sm">
+                       <span class="relative flex h-3 w-3">
+                         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                         <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                       </span>
+                       Danh sách thí sinh nộp bài...
+                     </h3>
+                     <span class="text-xs text-yellow-400 font-bold animate-pulse">Cập nhật realtime</span>
+                  </div>
+                  <div id="live-feed-score-pass" class="text-blue-200 text-xs italic text-right mt-1 border-t border-blue-800 pt-1">
+                      Điểm chuẩn: --
+                  </div>
+                </div>
+                <div class="p-2 bg-gray-50">
+                   <div id="live-feed-list" class="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+                      <div class="text-center text-gray-400 py-4 text-sm italic">Đang tải dữ liệu...</div>
+                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxeat7uGh2087ESvqzUsWATSbZgQERQj-5-Ooi0OacVSqQlMjN6rYRKkqxQqo0tc6xM8w/exec";
+
+    function runBackend(funcName, ...args) {
+      const isProduction = typeof google !== 'undefined' && google.script && google.script.run;
+      
+      if (isProduction) {
+        const runner = google.script.run.withFailureHandler(handleError);
+        switch(funcName) {
+          case 'getTestsList': runner.withSuccessHandler(populateTestDropdowns).getTestsList(); break;
+          case 'validateAdmin': runner.withSuccessHandler(res => {toggleLoading(false); if(res) showView('view-admin'); else alert('Sai thông tin');}).validateAdmin(...args); break;
+          case 'getTestResults': runner.withSuccessHandler(renderAdminDashboard).getTestResults(...args); break;
+          case 'getQuizData': runner.withSuccessHandler(setupQuiz).getQuizData(...args); break;
+          case 'submitQuiz': runner.withSuccessHandler(showResult).submitQuiz(...args); break;
+          case 'getRecentResults': runner.withSuccessHandler(updateLiveFeed).getRecentResults(...args); break;
+        }
+      } else {
+        if (!GAS_API_URL || GAS_API_URL.includes("DÁN_URL")) {
+          toggleLoading(false);
+          alert("CHƯA CẤU HÌNH URL! \nVui lòng Deploy Apps Script và dán URL vào biến 'GAS_API_URL' trong file index.html");
+          return;
+        }
+        
+        const payload = { action: funcName, args: args };
+        fetch(GAS_API_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        })
+        .then(response => response.json())
+        .then(json => {
+          if (json.status === 'error') throw new Error(json.message);
+          const res = json.data;
+          
+          if(funcName === 'getTestsList') populateTestDropdowns(res);
+          if(funcName === 'validateAdmin') {toggleLoading(false); if(res) showView('view-admin'); else alert('Sai thông tin');}
+          if(funcName === 'getTestResults') renderAdminDashboard(res);
+          if(funcName === 'getQuizData') setupQuiz(res);
+          if(funcName === 'submitQuiz') showResult(res);
+          if(funcName === 'getRecentResults') updateLiveFeed(res);
+        })
+        .catch(err => {
+          if (funcName !== 'getRecentResults') handleError(err); // Silent fail for polling
+          else console.log("Polling error:", err);
+        });
+      }
+    }
+
+    let allQuestions = [];
+    let currentTestName = "";
+    let timerInterval = null;
+    let pollingInterval = null;
+    let adminPollingInterval = null; 
+    let chartBlinkInterval = null; 
+    let quizTimeRemaining = 0; 
+    let totalDuration = 0; 
+    let currentPassScore = 0; 
+    let displayedFeedJSON = ""; 
+    let resultsChart = null; 
+    let currentHintsUsed = 0; 
+    
+    // PAGINATION VARIABLES
+    let currentBlockIndex = 0;
+    const QUESTIONS_PER_BLOCK = 4;
+    let totalBlocks = 0;
+
+    window.onload = () => { 
+      toggleLoading(true); 
+      runBackend('getTestsList'); 
+    };
+
+    function populateTestDropdowns(tests) {
+      toggleLoading(false);
+      const s = document.getElementById('student-test-select');
+      const a = document.getElementById('admin-test-select');
+      s.innerHTML = a.innerHTML = '<option value="" disabled selected>-- Chọn bài thi --</option>';
+      if(!tests || !tests.length) s.innerHTML = '<option disabled>Không có dữ liệu (Kiểm tra kết nối)</option>';
+      tests.forEach(t => {
+        const h = `<option value="${t.name}">${t.name} (${t.duration} phút)</option>`;
+        s.insertAdjacentHTML('beforeend', h);
+        a.insertAdjacentHTML('beforeend', h);
+      });
+    }
+
+    function showView(id) {
+      document.querySelectorAll('.view-section').forEach(e => e.classList.add('hidden'));
+      document.getElementById(id).classList.remove('hidden');
+      window.scrollTo(0,0);
+      
+      if (id !== 'view-result' && pollingInterval) clearInterval(pollingInterval);
+      if (id !== 'view-admin' && adminPollingInterval) clearInterval(adminPollingInterval);
+      if (id !== 'view-admin' && chartBlinkInterval) clearInterval(chartBlinkInterval);
+    }
+    
+    function toggleLoading(show, txt="Đang xử lý...") {
+      document.getElementById('loading-text').innerText = txt;
+      document.getElementById('loading-overlay').classList.toggle('hidden', !show);
+    }
+
+    function handleError(e) { toggleLoading(false); alert('Lỗi: ' + e.message); }
+
+    function handleAdminLogin() {
+      const u = document.getElementById('admin-user').value;
+      const p = document.getElementById('admin-pass').value;
+      if(u && p) { toggleLoading(true); runBackend('validateAdmin', u, p); }
+    }
+    
+    function exitAdminView() {
+      if(adminPollingInterval) clearInterval(adminPollingInterval);
+      if(chartBlinkInterval) clearInterval(chartBlinkInterval);
+      showView('view-home');
+    }
+
+    function loadResults() {
+      const v = document.getElementById('admin-test-select').value;
+      if(v) { 
+        toggleLoading(true, "Đang tải báo cáo..."); 
+        runBackend('getTestResults', v); 
+        
+        if(adminPollingInterval) clearInterval(adminPollingInterval);
+        adminPollingInterval = setInterval(() => {
+           runBackend('getTestResults', v); 
+        }, 10000);
+      }
+    }
+
+    function renderAdminDashboard(dataWrapper) {
+      // ... (Existing implementation remains the same)
+      toggleLoading(false);
+      const passScore = Number(dataWrapper.passScore) || 0;
+      const testDuration = Number(dataWrapper.duration) || 0; 
+      let totalQuestions = Number(dataWrapper.totalQuestions) || 0;
+      const results = dataWrapper.results || [];
+      if (totalQuestions === 0 && results.length > 0) {
+          const maxS = Math.max(...results.map(r => r.score));
+          totalQuestions = maxS > 0 ? maxS : 20; 
+      } else if (totalQuestions === 0) {
+          totalQuestions = 20;
+      }
+      
+      const contentDiv = document.getElementById('admin-dashboard-content');
+      const emptyMsg = document.getElementById('admin-empty-msg');
+      if (results.length === 0) {
+         contentDiv.classList.add('hidden');
+         emptyMsg.classList.remove('hidden');
+         return;
+      }
+      contentDiv.classList.remove('hidden');
+      emptyMsg.classList.add('hidden');
+      renderChart(results, passScore, totalQuestions);
+      
+      const god = [...results].sort((a,b) => {
+         if (b.score !== a.score) return b.score - a.score;
+         return b.timeSaving - a.timeSaving; 
+      })[0];
+      if(god) {
+        document.getElementById('badge-god').classList.remove('hidden');
+        document.getElementById('god-name').innerText = god.candidate;
+        document.getElementById('god-desc').innerText = `Điểm cao nhất: ${god.score} | Thời gian còn lại nhiều nhất: ${god.timeSaving}p`;
+      } else {
+        document.getElementById('badge-god').classList.add('hidden');
+      }
+
+      const failFast = results.filter(r => r.score < passScore).sort((a,b) => b.timeSaving - a.timeSaving)[0];
+      if(failFast) {
+         document.getElementById('badge-furious').classList.remove('hidden');
+         document.getElementById('furious-name').innerText = failFast.candidate;
+         document.getElementById('furious-desc').innerText = `Rớt (${failFast.score}đ) nhưng nhanh nhất (${failFast.timeSaving}p)`;
+      } else {
+         document.getElementById('badge-furious').classList.add('hidden');
+      }
+      
+      const hintMaster = [...results].sort((a,b) => b.hintsUsed - a.hintsUsed)[0];
+      if (hintMaster && hintMaster.hintsUsed > 0) {
+        document.getElementById('badge-hint').classList.remove('hidden');
+        document.getElementById('hint-name').innerText = hintMaster.candidate;
+        document.getElementById('hint-desc').innerText = `Số lần dùng Gợi ý: ${hintMaster.hintsUsed}/${totalQuestions}`;
+      } else {
+        document.getElementById('badge-hint').classList.add('hidden');
+      }
+      
+      const zenMaster = [...results].sort((a,b) => a.timeSaving - b.timeSaving)[0];
+      if (zenMaster) {
+        document.getElementById('badge-zen').classList.remove('hidden');
+        document.getElementById('zen-name').innerText = zenMaster.candidate;
+        const timeSpent = (testDuration - zenMaster.timeSaving).toFixed(2);
+        document.getElementById('zen-desc').innerText = `Dùng nhiều thời gian nhất (${timeSpent}p)`;
+      } else {
+        document.getElementById('badge-zen').classList.add('hidden');
+      }
+
+      const passList = results.filter(r => r.score >= passScore).sort((a,b) => b.score - a.score); 
+      const tbody = document.getElementById('pass-list-body');
+      tbody.innerHTML = '';
+      if(passList.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-gray-400 italic text-xl">Chưa có thí sinh nào đạt chuẩn.</td></tr>';
+      } else {
+        passList.forEach((r, idx) => {
+           tbody.innerHTML += `
+             <tr class="hover:bg-green-50">
+                <td class="px-6 py-6 whitespace-nowrap text-2xl font-extrabold text-highlight">#${idx+1}</td>
+                <td class="px-6 py-6 whitespace-nowrap font-bold text-2xl text-highlight">${r.candidate}</td>
+                <td class="px-6 py-6 whitespace-nowrap text-xl text-gray-600">${r.position}</td>
+                <td class="px-6 py-6 whitespace-nowrap font-extrabold text-2xl text-deepBlue">${r.score}</td>
+                <td class="px-6 py-6 whitespace-nowrap text-xl text-gray-500 font-bold">${r.hintsUsed}</td>
+             </tr>
+           `;
+        });
+      }
+    }
+
+    function renderChart(results, passScore, totalQuestions) {
+       // ... (Existing implementation remains the same)
+       const ctx = document.getElementById('adminResultsChart').getContext('2d');
+       if (resultsChart) { resultsChart.destroy(); resultsChart = null; }
+       if(chartBlinkInterval) clearInterval(chartBlinkInterval);
+       const labels = results.map(r => r.candidate);
+       const scores = results.map(r => r.score);
+       const maxScore = Math.max(...scores); 
+       const maxIndex = scores.indexOf(maxScore);
+       const bgColors = scores.map((s, idx) => {
+          if(idx === maxIndex) return 'rgba(255, 215, 0, 0.9)'; 
+          const r = Math.floor(Math.random() * 200);
+          const g = Math.floor(Math.random() * 200);
+          const b = Math.floor(Math.random() * 200);
+          return `rgba(${r}, ${g}, ${b}, 0.5)`;
+       });
+       const borderColors = scores.map((s, idx) => {
+         if(idx === maxIndex) return 'rgba(217, 119, 6, 1)'; 
+         return bgColors[idx].replace('0.5', '1');
+       });
+       const borderWidths = scores.map((s, idx) => idx === maxIndex ? 3 : 1);
+
+       resultsChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Score',
+            data: scores,
+            backgroundColor: bgColors,
+            borderColor: borderColors,
+            borderWidth: borderWidths,
+            barPercentage: 0.6
+          }]
+        },
+        options: {
+          indexAxis: 'y', 
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 1000, easing: 'easeOutQuart' },
+          scales: {
+            x: { beginAtZero: true, max: totalQuestions * 1.05, title: { display: true, text: 'Score' }, grid: { display: false } },
+            y: { title: { display: false }, grid: { display: false }, ticks: { color: borderColors, font: { weight: 'bold' } } }
+          },
+          plugins: {
+            legend: { display: false },
+            annotation: {
+              annotations: {
+                line1: {
+                  type: 'line', xMin: passScore, xMax: passScore, borderColor: 'rgb(220, 38, 38)', borderWidth: 4, borderDash: [6, 4],
+                  label: { content: `Điểm chuẩn: ${passScore}`, display: true, position: 'end', backgroundColor: 'rgb(220, 38, 38)', color: 'white', font: { size: 11, weight: 'bold' } }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      let isBright = true;
+      chartBlinkInterval = setInterval(() => {
+          isBright = !isBright;
+          if(resultsChart) {
+             if(maxIndex !== -1) {
+                const newColor = isBright ? 'rgba(255, 215, 0, 0.9)' : 'rgba(249, 115, 22, 0.9)';
+                const newBorder = isBright ? 'rgba(255, 255, 255, 1)' : 'rgba(180, 83, 9, 1)';
+                resultsChart.data.datasets[0].backgroundColor[maxIndex] = newColor;
+                resultsChart.data.datasets[0].borderColor[maxIndex] = newBorder;
+                const ticksColor = resultsChart.options.scales.y.ticks.color;
+                if(Array.isArray(ticksColor)) ticksColor[maxIndex] = newBorder;
+             }
+             const newLineColor = isBright ? 'rgb(220, 38, 38)' : 'rgb(250, 204, 21)';
+             if(resultsChart.options.plugins.annotation.annotations.line1) {
+                resultsChart.options.plugins.annotation.annotations.line1.borderColor = newLineColor;
+                resultsChart.options.plugins.annotation.annotations.line1.label.backgroundColor = newLineColor;
+                resultsChart.options.plugins.annotation.annotations.line1.label.color = isBright ? 'white' : 'black';
+             }
+             resultsChart.update('none'); 
+          }
+      }, 500); 
+    }
+
+    function startQuizFlow() {
+      const v = document.getElementById('student-test-select').value;
+      if(v) { currentTestName = v; toggleLoading(true); runBackend('getQuizData', v); }
+    }
+
+    function setupQuiz(data) {
+      if(!data) { toggleLoading(false); return alert('Không tải được dữ liệu đề thi'); }
+      
+      allQuestions = data.questions;
+      totalDuration = data.config.duration;
+      currentPassScore = data.config.passScore; 
+      currentHintsUsed = 0; 
+      
+      document.getElementById('quiz-title-display').innerText = data.config.name;
+      document.getElementById('entry-quiz-title').innerText = `${data.config.name} (${data.config.duration} phút)`;
+      
+      document.getElementById('candidate-name').value = "";
+      document.getElementById('candidate-position').value = "";
+      document.getElementById('error-name').classList.add('hidden');
+      document.getElementById('error-position').classList.add('hidden');
+
+      quizTimeRemaining = totalDuration * 60;
+      updateTimerDisplay(); 
+      
+      // --- PAGINATION & RENDERING ---
+      totalBlocks = Math.ceil(allQuestions.length / QUESTIONS_PER_BLOCK);
+      currentBlockIndex = 0;
+      
+      // Render Navigation Grid
+      renderQuestionMap(allQuestions.length);
+      // Initialize Progress Display
+      updateProgressDisplay();
+
+      const c = document.getElementById('questions-container');
+      c.innerHTML = '';
+      
+      // Render Blocks
+      for(let b = 0; b < totalBlocks; b++) {
+         const blockDiv = document.createElement('div');
+         blockDiv.id = `block-${b}`;
+         blockDiv.className = `quiz-block space-y-6 ${b === 0 ? 'quiz-block-visible' : 'quiz-block-hidden'}`;
+         
+         const startIndex = b * QUESTIONS_PER_BLOCK;
+         const endIndex = Math.min(startIndex + QUESTIONS_PER_BLOCK, allQuestions.length);
+         
+         for(let i = startIndex; i < endIndex; i++) {
+             const q = allQuestions[i];
+             let inputType = q.type === 'Multiple Choice' ? 'checkbox' : 'radio';
+             let choicesHtml = '';
+             const labels = ['A','B','C','D'];
+             q.choices.forEach((choice, choiceIdx) => {
+               choicesHtml += `
+                <label class="flex items-start p-3 border rounded-lg cursor-pointer hover:bg-blue-50 transition">
+                  <input type="${inputType}" name="q_${i}" value="${choice}" onchange="updateQuestionStatus(${i})" class="mt-1 mr-3 text-deepBlue focus:ring-deepBlue">
+                  <span class="text-gray-700"><b>${labels[choiceIdx] || ''}.</b> ${choice}</span>
+                </label>`;
+             });
+
+             let hintHtml = '';
+             if(q.hint) {
+               hintHtml = `
+                <div class="mb-4">
+                  <button id="btn-hint-${i}" type="button" onclick="revealHint(${i})" class="flex items-center gap-1 text-xs font-bold text-orange-600 bg-orange-100 hover:bg-orange-200 px-3 py-1.5 rounded transition">
+                    <span>💡 Xem gợi ý</span>
+                    <span class="bg-white px-1 rounded text-[10px] text-orange-400 border border-orange-100">-10s</span>
+                  </button>
+                  <div id="hint-content-${i}" class="hidden mt-2 text-sm text-gray-600 bg-yellow-50 p-3 rounded border border-yellow-200 italic">
+                    <span class="font-bold text-yellow-600 not-italic">Gợi ý:</span> ${q.hint}
+                  </div>
+                </div>
+               `;
+             }
+
+             blockDiv.insertAdjacentHTML('beforeend', `
+              <div class="bg-white p-6 rounded-xl shadow border-l-4 border-deepBlue relative" id="q-card-${i}">
+                <div class="flex justify-between mb-4">
+                   <span class="bg-blue-100 text-deepBlue text-xs font-bold px-2 py-1 rounded uppercase">${q.type}</span>
+                   <span class="text-gray-400 text-sm font-bold">Câu ${i+1}</span>
+                </div>
+                <p class="text-lg font-semibold text-gray-800 mb-4">${q.question}</p>
+                ${hintHtml}
+                <div class="space-y-2">${choicesHtml}</div>
+              </div>
+            `);
+         }
+         c.appendChild(blockDiv);
+      }
+      
+      updateBlockButtons();
+
+      toggleLoading(false);
+      showView('view-quiz');
+      
+      document.getElementById('quiz-entry-form').classList.remove('hidden');
+      document.getElementById('quiz-interface').classList.add('hidden');
+      if(timerInterval) clearInterval(timerInterval);
+    }
+    
+    // --- NEW: NAVIGATION LOGIC ---
+    
+    function renderQuestionMap(total) {
+      const grid = document.getElementById('question-nav-grid');
+      grid.innerHTML = '';
+      for(let i=0; i<total; i++) {
+        // Default Orange (Unanswered)
+        const btn = document.createElement('button');
+        btn.id = `nav-btn-${i}`;
+        btn.className = 'w-full aspect-square rounded font-bold text-xs text-white bg-orange-400 hover:bg-orange-500 transition shadow-sm';
+        btn.innerText = i + 1;
+        btn.onclick = () => jumpToQuestion(i);
+        grid.appendChild(btn);
+      }
+    }
+
+    function updateQuestionStatus(qIndex) {
+      const checked = document.querySelectorAll(`input[name="q_${qIndex}"]:checked`);
+      const btn = document.getElementById(`nav-btn-${qIndex}`);
+      if(checked.length > 0) {
+        // Green (Answered)
+        btn.classList.remove('bg-orange-400', 'hover:bg-orange-500');
+        btn.classList.add('bg-green-500', 'hover:bg-green-600');
+      } else {
+        // Back to Orange
+        btn.classList.remove('bg-green-500', 'hover:bg-green-600');
+        btn.classList.add('bg-orange-400', 'hover:bg-orange-500');
+      }
+      // Trigger progress update
+      updateProgressDisplay();
+    }
+    
+    // NEW: Update Realtime Progress
+    function updateProgressDisplay() {
+      let count = 0;
+      for(let i=0; i<allQuestions.length; i++) {
+         if(document.querySelectorAll(`input[name="q_${i}"]:checked`).length > 0) count++;
+      }
+      const el = document.getElementById('progress-display');
+      if(el) el.innerText = `(${count}/${allQuestions.length})`;
+    }
+
+    function jumpToQuestion(qIndex) {
+       const targetBlock = Math.floor(qIndex / QUESTIONS_PER_BLOCK);
+       if(targetBlock !== currentBlockIndex) {
+         switchBlock(targetBlock);
+       }
+       // Optional: smooth scroll to question within block
+       setTimeout(() => {
+          const el = document.getElementById(`q-card-${qIndex}`);
+          if(el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+       }, 300); // wait for fade in
+    }
+
+    function changeBlock(direction) {
+      const newBlock = currentBlockIndex + direction;
+      if(newBlock >= 0 && newBlock < totalBlocks) {
+        switchBlock(newBlock);
+      }
+    }
+
+    function switchBlock(index) {
+      // Fade Out Current
+      const currentEl = document.getElementById(`block-${currentBlockIndex}`);
+      if(currentEl) {
+        currentEl.classList.remove('quiz-block-visible');
+        currentEl.classList.add('quiz-block-hidden');
+      }
+      
+      currentBlockIndex = index;
+      
+      // Fade In New (small delay for smoothness)
+      setTimeout(() => {
+         const newEl = document.getElementById(`block-${currentBlockIndex}`);
+         if(newEl) {
+            newEl.classList.remove('quiz-block-hidden');
+            newEl.classList.add('quiz-block-visible');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+         }
+      }, 50);
+      
+      updateBlockButtons();
+    }
+
+    function updateBlockButtons() {
+      const prevBtn = document.getElementById('btn-prev-block');
+      const nextBtn = document.getElementById('btn-next-block');
+      
+      if(prevBtn) prevBtn.disabled = currentBlockIndex === 0;
+      if(prevBtn) prevBtn.classList.toggle('opacity-50', currentBlockIndex === 0);
+      
+      if(nextBtn) nextBtn.disabled = currentBlockIndex === totalBlocks - 1;
+      if(nextBtn) nextBtn.classList.toggle('opacity-50', currentBlockIndex === totalBlocks - 1);
+    }
+    
+    // --- (Rest of standard functions remain similar) ---
+    
+    function handleStartActualQuiz() {
+      const nameEl = document.getElementById('candidate-name');
+      const posEl = document.getElementById('candidate-position');
+      const errorName = document.getElementById('error-name');
+      const errorPos = document.getElementById('error-position');
+      const name = nameEl.value.trim();
+      const pos = posEl.value.trim();
+      let isValid = true;
+      if(!name) { errorName.classList.remove('hidden'); isValid = false; } else { errorName.classList.add('hidden'); }
+      if(!pos) { errorPos.classList.remove('hidden'); isValid = false; } else { errorPos.classList.add('hidden'); }
+      if(!isValid) return;
+      
+      document.getElementById('display-candidate-name').innerText = name;
+      document.getElementById('quiz-entry-form').classList.add('hidden');
+      document.getElementById('quiz-interface').classList.remove('hidden');
+      startTimer(totalDuration);
+      window.scrollTo(0,0);
+    }
+
+    function revealHint(idx) {
+      const btn = document.getElementById(`btn-hint-${idx}`);
+      const content = document.getElementById(`hint-content-${idx}`);
+      if(btn && content) {
+        btn.classList.add('hidden');
+        content.classList.remove('hidden');
+        currentHintsUsed++; 
+        quizTimeRemaining -= 10;
+        if(quizTimeRemaining < 0) quizTimeRemaining = 0;
+        updateTimerDisplay();
+        const timerEl = document.getElementById('timer-display');
+        timerEl.classList.add('text-red-500', 'scale-125');
+        setTimeout(() => { timerEl.classList.remove('text-red-500', 'scale-125'); }, 300);
+      }
+    }
+
+    function startTimer(min) {
+      if(timerInterval) clearInterval(timerInterval);
+      quizTimeRemaining = min * 60;
+      updateTimerDisplay();
+      timerInterval = setInterval(() => {
+        quizTimeRemaining--;
+        updateTimerDisplay();
+        if(quizTimeRemaining <= 0) { clearInterval(timerInterval); submitQuiz(true); }
+      }, 1000);
+    }
+
+    function updateTimerDisplay() {
+      const m = Math.floor(quizTimeRemaining / 60);
+      const s = Math.floor(quizTimeRemaining % 60);
+      const el = document.getElementById('timer-display');
+      el.innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+      el.classList.toggle('text-red-600', quizTimeRemaining < 60);
+    }
+
+    function showConfirmModal(count, callback) {
+      const modal = document.getElementById('confirm-modal');
+      const text = document.getElementById('confirm-modal-text');
+      const btn = document.getElementById('confirm-modal-btn');
+      text.innerHTML = `Bạn còn <strong class="text-red-600 text-lg">${count}</strong> câu hỏi chưa trả lời.<br>Nếu nộp ngay, các câu này sẽ không có điểm.<br>Bạn có chắc chắn muốn nộp bài không?`;
+      const newBtn = btn.cloneNode(true);
+      btn.parentNode.replaceChild(newBtn, btn);
+      newBtn.onclick = () => { closeConfirmModal(); callback(); };
+      modal.classList.remove('hidden');
+    }
+
+    function closeConfirmModal() {
+      document.getElementById('confirm-modal').classList.add('hidden');
+    }
+
+    function submitQuiz(force=false) {
+      try {
+        const name = document.getElementById('candidate-name').value.trim();
+        const pos = document.getElementById('candidate-position').value.trim();
+        if(!force && (!name || !pos)) { alert("Lỗi: Thông tin thí sinh bị thiếu."); return; }
+        
+        if (!force) {
+          let answeredCount = 0;
+          allQuestions.forEach((q, idx) => {
+             const checked = document.querySelectorAll(`input[name="q_${idx}"]:checked`);
+             if(checked.length > 0) answeredCount++;
+          });
+          const total = allQuestions.length;
+          const unanswered = total - answeredCount;
+          if (unanswered > 0) {
+             showConfirmModal(unanswered, () => { submitQuiz(true); });
+             return; 
+          }
+        }
+        
+        clearInterval(timerInterval);
+        const answers = allQuestions.map((q, idx) => {
+          const checked = document.querySelectorAll(`input[name="q_${idx}"]:checked`);
+          const values = Array.from(checked).map(e => e.value);
+          return { question: q.question, selected: values };
+        });
+        const timeSavingMin = (quizTimeRemaining / 60).toFixed(2);
+        const payload = {
+          testName: currentTestName, candidate: name || "Unknown", position: pos || "Unknown",
+          timeSaving: timeSavingMin, answers: answers, hintsUsed: currentHintsUsed
+        };
+        toggleLoading(true, "Đang chấm điểm...");
+        runBackend('submitQuiz', payload);
+      } catch (e) {
+        console.error(e);
+        alert("Có lỗi xảy ra khi nộp bài: " + e.message);
+      }
+    }
+
+    function showResult(data) {
+      toggleLoading(false);
+      const name = document.getElementById('candidate-name').value;
+      const pos = document.getElementById('candidate-position').value;
+      document.getElementById('result-candidate-name').innerText = name || "Thí sinh";
+      document.getElementById('result-candidate-position').innerText = pos || "Chưa cập nhật";
+      const score = data && data.score ? data.score : (typeof data === 'string' ? data : "0.00");
+      document.getElementById('final-score-display').innerText = score;
+      const hintsUsed = (data && data.hintsUsed !== undefined) ? data.hintsUsed : 0;
+      const totalQ = allQuestions.length; 
+      document.getElementById('final-hints-display').innerText = `${hintsUsed}/${totalQ}`;
+
+      const container = document.getElementById('result-details');
+      container.innerHTML = '';
+      startPollingLiveFeed();
+
+      if (!data || !data.details) {
+        if (typeof data === 'string' || (data && !data.details)) {
+           container.innerHTML = `<div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4"><p class="text-sm text-yellow-700 font-bold">Lưu ý: Không thể hiển thị chi tiết (Phiên bản cũ).</p></div>`;
+        }
+        showView('view-result');
+        return;
+      }
+      
+      data.details.forEach((item, index) => {
+        const isCorrect = item.isCorrect;
+        const originalQ = allQuestions[index];
+        const getLabel = (txt) => {
+            if (!originalQ || !originalQ.choices) return "";
+            const i = originalQ.choices.indexOf(txt);
+            return i > -1 ? String.fromCharCode(65 + i) + ". " : "";
+        };
+        const borderClass = isCorrect ? 'border-green-500' : 'border-red-500';
+        const bgIcon = isCorrect ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600';
+        const iconChar = isCorrect ? '✓' : '✕';
+        
+        let userAnsHtml = item.userSelected.length > 0 
+          ? item.userSelected.map(t => {
+              const label = getLabel(t);
+              return `<span class="${isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'} px-2 py-1 rounded text-sm font-medium border border-opacity-20 ${isCorrect?'border-green-800':'border-red-800'}"><b>${label}</b>${t}</span>`;
+            }).join(' ')
+          : '<span class="text-gray-400 italic">Không chọn đáp án</span>';
+        let correctAnsHtml = item.correctTexts && item.correctTexts.length > 0
+          ? item.correctTexts.map(t => {
+              const label = getLabel(t);
+              return `<span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-medium border border-blue-200"><b>${label}</b>${t}</span>`;
+            }).join(' ')
+          : '<span class="text-gray-400 italic">Không tìm thấy đáp án</span>';
+
+        const html = `
+          <div class="bg-white p-5 rounded-lg shadow-sm border-l-8 ${borderClass} flex gap-4">
+            <div class="flex-shrink-0"><div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg ${bgIcon}">${iconChar}</div></div>
+            <div class="flex-grow">
+              <h4 class="font-bold text-gray-800 mb-2">Câu ${index + 1}: ${item.question}</h4>
+              <div class="mb-2"><span class="text-xs font-bold text-gray-500 uppercase">Bạn chọn:</span><div class="mt-1 flex flex-wrap gap-2">${userAnsHtml}</div></div>
+              ${!isCorrect ? `<div class="mb-2"><span class="text-xs font-bold text-gray-500 uppercase">Đáp án đúng:</span><div class="mt-1 flex flex-wrap gap-2">${correctAnsHtml}</div></div>` : ''}
+            </div>
+          </div>
+        `;
+        container.insertAdjacentHTML('beforeend', html);
+      });
+      showView('view-result');
+    }
+
+    function startPollingLiveFeed() {
+      if (pollingInterval) clearInterval(pollingInterval);
+      displayedFeedJSON = ""; 
+      document.getElementById('live-feed-score-pass').innerText = `Điểm chuẩn: ${currentPassScore}`;
+      document.getElementById('live-feed-list').innerHTML = '<div class="text-center text-gray-400 py-4 text-sm italic">Đang tải dữ liệu...</div>';
+      runBackend('getRecentResults', currentTestName);
+      pollingInterval = setInterval(() => { runBackend('getRecentResults', currentTestName); }, 5000);
+    }
+    
+    function stopPollingLiveFeed() {
+      if (pollingInterval) clearInterval(pollingInterval);
+      pollingInterval = null;
+    }
+
+    function updateLiveFeed(data) {
+      if (!data) return;
+      const currentJSON = JSON.stringify(data);
+      if (currentJSON === displayedFeedJSON) return;
+      displayedFeedJSON = currentJSON;
+      const container = document.getElementById('live-feed-list');
+      if (data.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-400 py-4 text-sm italic">Chưa có kết quả nào khác.</div>';
+        return;
+      }
+      container.innerHTML = '';
+      data.forEach((item, index) => {
+        const isFail = parseFloat(item.score) < parseFloat(currentPassScore);
+        const failBadge = isFail ? `<span class="bg-red-500 text-white text-[9px] font-bold px-1 py-0.5 rounded ml-1">FAIL</span>` : '';
+        const delay = index * 0.1; 
+        const html = `
+          <div class="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-100 shadow-sm animate-slide-in-right" style="animation-delay: ${delay}s;">
+            <div class="flex items-center gap-3 overflow-hidden">
+               <div class="w-8 h-8 rounded-full bg-blue-100 text-deepBlue flex items-center justify-center font-bold text-xs flex-shrink-0">${item.candidate.charAt(0).toUpperCase()}</div>
+               <div class="flex flex-col min-w-0">
+                 <span class="font-semibold text-gray-800 text-sm truncate flex items-center">${item.candidate} ${failBadge}</span>
+                 <span class="text-[10px] text-gray-400">${item.timestamp.split(' ')[1] || ''}</span>
+               </div>
+            </div>
+            <div class="flex-shrink-0">
+              <span class="font-bold text-highlight text-lg">${item.score}</span>
+              <span class="text-[10px] text-gray-500 block text-right">điểm</span>
+            </div>
+          </div>
+        `;
+        container.insertAdjacentHTML('beforeend', html);
+      });
+    }
+
+    function returnToHome() {
+      stopPollingLiveFeed();
+      document.getElementById('candidate-name').value = "";
+      document.getElementById('candidate-position').value = "";
+      document.getElementById('student-test-select').value = "";
+      document.getElementById('admin-user').value = "";
+      document.getElementById('admin-pass').value = "";
+      currentTestName = "";
+      allQuestions = [];
+      currentHintsUsed = 0; 
+      if(timerInterval) clearInterval(timerInterval);
+      showView('view-home');
+    }
+
+    function scrollToLiveFeed() {
+      const el = document.getElementById('live-feed-container');
+      if(el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+  </script>
+</body>
+</html>
