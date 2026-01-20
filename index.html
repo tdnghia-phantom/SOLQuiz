@@ -174,17 +174,19 @@
     <div id="view-admin" class="view-section hidden">
       <div class="max-w-7xl mx-auto">
         <div class="flex justify-between items-end mb-6 border-b pb-4">
-          <h2 class="text-3xl font-bold text-deepBlue">Bảng điều khiển</h2>
+          <h2 class="text-3xl font-bold text-deepBlue">SOL<span class="text-highlight">Quiz</span> Dashboard</h2>
           <button onclick="exitAdminView()" class="text-gray-500 hover:text-deepBlue">Đăng xuất</button>
         </div>
         
         <!-- Controls -->
-        <div class="bg-white p-6 rounded-lg shadow mb-8 flex gap-4 items-end">
+        <div class="bg-white p-6 rounded-lg shadow mb-8 flex flex-col md:flex-row gap-4 md:items-end">
           <div class="flex-grow">
-            <label class="block text-sm font-medium mb-1">Chọn bài thi để xem báo cáo</label>
+            <!-- Updated Label: nowrap and smaller text on mobile to fit 1 line -->
+            <label class="block text-xs sm:text-sm font-medium mb-1 whitespace-nowrap overflow-hidden text-ellipsis">Chọn bài thi để xem báo cáo</label>
             <select id="admin-test-select" class="w-full p-2 border rounded bg-white text-gray-900"></select>
           </div>
-          <button onclick="loadResults()" class="bg-highlight text-white font-bold py-2 px-6 rounded h-10 shadow hover:bg-orange-600 transition">
+          <!-- Updated Button: Larger size (1.5x approx) -->
+          <button onclick="loadResults()" class="bg-highlight text-white font-bold py-3 px-8 text-lg rounded-lg shadow-lg hover:bg-orange-600 transition transform hover:scale-105">
              Xem báo cáo (Realtime)
           </button>
         </div>
@@ -193,7 +195,8 @@
            
            <!-- Section 1: Chart -->
            <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
-             <h3 class="text-3xl font-extrabold text-deepBlue mb-4 flex items-center gap-2">
+             <!-- Updated Title Size: text-[21px] (approx 80% of 26px) -->
+             <h3 class="text-[21px] font-extrabold text-deepBlue mb-4 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-highlight" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
@@ -251,21 +254,24 @@
            <!-- Section 3: Pass List -->
            <div class="bg-white rounded-xl shadow overflow-hidden">
              <div class="bg-green-600 px-6 py-4 flex justify-between items-center">
-               <h3 class="text-white font-bold text-2xl">Danh sách Pass Test</h3>
+               <h3 class="text-white font-bold text-xl">Danh sách Pass Test</h3>
                <span class="bg-green-700 text-green-100 text-sm px-3 py-1 rounded">Sắp xếp theo điểm</span>
              </div>
-             <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                  <tr>
-                    <th class="px-6 py-4 text-left text-xl font-bold text-gray-500 uppercase">Hạng</th>
-                    <th class="px-6 py-4 text-left text-xl font-bold text-gray-500 uppercase">Thí sinh</th>
-                    <th class="px-6 py-4 text-left text-xl font-bold text-gray-500 uppercase">Vị trí</th>
-                    <th class="px-6 py-4 text-left text-xl font-bold text-gray-500 uppercase">Tổng điểm</th>
-                    <th class="px-6 py-4 text-left text-xl font-bold text-gray-500 uppercase">Gợi ý</th>
-                  </tr>
-                </thead>
-                <tbody id="pass-list-body" class="bg-white divide-y divide-gray-200"></tbody>
-             </table>
+             <div class="overflow-x-auto">
+               <table class="min-w-full divide-y divide-gray-200">
+                  <thead class="bg-gray-50">
+                    <tr>
+                      <!-- Responsive Header Padding and Text Size -->
+                      <th class="px-2 py-3 md:px-6 md:py-4 text-left text-xs md:text-xl font-bold text-gray-500 uppercase">Hạng</th>
+                      <th class="px-2 py-3 md:px-6 md:py-4 text-left text-xs md:text-xl font-bold text-gray-500 uppercase">Thí sinh</th>
+                      <th class="px-2 py-3 md:px-6 md:py-4 text-left text-xs md:text-xl font-bold text-gray-500 uppercase">Vị trí</th>
+                      <th class="px-2 py-3 md:px-6 md:py-4 text-left text-xs md:text-xl font-bold text-gray-500 uppercase">Tổng điểm</th>
+                      <th class="px-2 py-3 md:px-6 md:py-4 text-left text-xs md:text-xl font-bold text-gray-500 uppercase">Gợi ý</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pass-list-body" class="bg-white divide-y divide-gray-200"></tbody>
+               </table>
+             </div>
            </div>
         </div>
         <div id="admin-empty-msg" class="text-center py-12 text-gray-500 italic hidden">Chưa có dữ liệu cho bài thi này.</div>
@@ -455,7 +461,7 @@
   </main>
 
   <script>
-    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxeat7uGh2087ESvqzUsWATSbZgQERQj-5-Ooi0OacVSqQlMjN6rYRKkqxQqo0tc6xM8w/exec";
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxQBgXEL718zTpvNjTzkUrNCrNF2s_UaU4IJ2FxHIIJshxGmBQXaBsSGrRuglWlxn2R0w/exec";
 
     function runBackend(funcName, ...args) {
       const isProduction = typeof google !== 'undefined' && google.script && google.script.run;
@@ -531,7 +537,7 @@
       s.innerHTML = a.innerHTML = '<option value="" disabled selected>-- Chọn bài thi --</option>';
       if(!tests || !tests.length) s.innerHTML = '<option disabled>Không có dữ liệu (Kiểm tra kết nối)</option>';
       tests.forEach(t => {
-        const h = `<option value="${t.name}">${t.name} (${t.duration} phút)</option>`;
+        const h = `<option value="${t.name}">${t.name} (${t.duration} phút - ${t.questionCount} câu)</option>`;
         s.insertAdjacentHTML('beforeend', h);
         a.insertAdjacentHTML('beforeend', h);
       });
@@ -557,7 +563,8 @@
     function handleAdminLogin() {
       const u = document.getElementById('admin-user').value;
       const p = document.getElementById('admin-pass').value;
-      if(u && p) { toggleLoading(true); runBackend('validateAdmin', u, p); }
+      // Trim input for better UX
+      if(u && p) { toggleLoading(true); runBackend('validateAdmin', u.trim(), p.trim()); }
     }
     
     function exitAdminView() {
@@ -602,7 +609,10 @@
       }
       contentDiv.classList.remove('hidden');
       emptyMsg.classList.add('hidden');
-      renderChart(results, passScore, totalQuestions);
+      
+      // Extract timestamps for chart tooltips
+      const timestamps = results.map(r => r.timestampStr);
+      renderChart(results, passScore, totalQuestions, timestamps);
       
       const god = [...results].sort((a,b) => {
          if (b.score !== a.score) return b.score - a.score;
@@ -653,18 +663,18 @@
         passList.forEach((r, idx) => {
            tbody.innerHTML += `
              <tr class="hover:bg-green-50">
-                <td class="px-6 py-6 whitespace-nowrap text-2xl font-extrabold text-highlight">#${idx+1}</td>
-                <td class="px-6 py-6 whitespace-nowrap font-bold text-2xl text-highlight">${r.candidate}</td>
-                <td class="px-6 py-6 whitespace-nowrap text-xl text-gray-600">${r.position}</td>
-                <td class="px-6 py-6 whitespace-nowrap font-extrabold text-2xl text-deepBlue">${r.score}</td>
-                <td class="px-6 py-6 whitespace-nowrap text-xl text-gray-500 font-bold">${r.hintsUsed}</td>
+                <td class="px-2 py-2 md:px-6 md:py-6 whitespace-nowrap font-extrabold text-highlight text-sm md:text-2xl">#${idx+1}</td>
+                <td class="px-2 py-2 md:px-6 md:py-6 whitespace-nowrap font-bold text-highlight text-sm md:text-2xl">${r.candidate}</td>
+                <td class="px-2 py-2 md:px-6 md:py-6 whitespace-nowrap text-gray-600 text-sm md:text-xl">${r.position}</td>
+                <td class="px-2 py-2 md:px-6 md:py-6 whitespace-nowrap font-extrabold text-deepBlue text-sm md:text-2xl">${r.score}</td>
+                <td class="px-2 py-2 md:px-6 md:py-6 whitespace-nowrap text-gray-500 font-bold text-sm md:text-xl">${r.hintsUsed}</td>
              </tr>
            `;
         });
       }
     }
 
-    function renderChart(results, passScore, totalQuestions) {
+    function renderChart(results, passScore, totalQuestions, timestamps) {
        // ... (Existing implementation remains the same)
        const ctx = document.getElementById('adminResultsChart').getContext('2d');
        if (resultsChart) { resultsChart.destroy(); resultsChart = null; }
@@ -710,6 +720,18 @@
           },
           plugins: {
             legend: { display: false },
+            // Add tooltip callback to show timestamp
+            tooltip: {
+               callbacks: {
+                  afterLabel: function(context) {
+                     const index = context.dataIndex;
+                     if(timestamps && timestamps[index]) {
+                        return 'Nộp lúc: ' + timestamps[index];
+                     }
+                     return '';
+                  }
+               }
+            },
             annotation: {
               annotations: {
                 line1: {

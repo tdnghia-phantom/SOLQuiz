@@ -1,4 +1,5 @@
 
+
 // -----------------------------------------------------------------------
 // CẤU HÌNH & THIẾT LẬP (CONFIGURATION)
 // -----------------------------------------------------------------------
@@ -76,6 +77,15 @@ function getTestsList() {
   if (!sheet) return [];
   
   const data = sheet.getDataRange().getValues();
+  const headers = data[0]; 
+
+  // Find column for Total Questions dynamically
+  let limitIdx = -1;
+  ["Limit", "Number of Questions", "Số câu"].forEach(key => {
+     if (limitIdx === -1) limitIdx = headers.indexOf(key);
+  });
+  if (limitIdx === -1) limitIdx = 2; // Fallback to column index 2 (C)
+
   data.shift(); // Bỏ dòng tiêu đề
   
   // Col 4: Status (Active)
@@ -83,7 +93,8 @@ function getTestsList() {
     .filter(row => String(row[4]).toLowerCase() === 'active') 
     .map(row => ({
       name: row[1],      
-      duration: row[3]   
+      duration: row[3],
+      questionCount: row[limitIdx]
     }))
     .reverse(); 
     
@@ -96,8 +107,15 @@ function validateAdmin(username, password) {
   if (!sheet) return false;
   
   const data = sheet.getDataRange().getValues();
+  // Normalize input username to lowercase
+  const inputUser = String(username || "").trim().toLowerCase();
+  
   for (let i = 1; i < data.length; i++) {
-    if (String(data[i][1]) === username && String(data[i][2]) === password) {
+    // Compare stored username (lowercased) with input username
+    const storedUser = String(data[i][1]).toLowerCase();
+    const storedPass = String(data[i][2]); // Password remains case-sensitive
+    
+    if (storedUser === inputUser && storedPass === password) {
       return true;
     }
   }
@@ -188,7 +206,8 @@ function getRecentResults(testName) {
 
 function formatDate(dateObj) {
   try {
-    return Utilities.formatDate(new Date(dateObj), Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm");
+    // Updated format to dd/MM/yy HH:mm:ss per user request
+    return Utilities.formatDate(new Date(dateObj), Session.getScriptTimeZone(), "dd/MM/yy HH:mm:ss");
   } catch (e) {
     return String(dateObj);
   }
