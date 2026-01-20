@@ -76,29 +76,85 @@ function getTestsList() {
   const sheet = ss.getSheetByName(DB_SHEETS.TESTS);
   if (!sheet) return [];
   
-  const data = sheet.getDataRange().getValues();
+  const dataRange = sheet.getDataRange();
+  const data = dataRange.getValues();
   const headers = data[0]; 
 
-  // Find column for Total Questions dynamically
-  let limitIdx = -1;
-  ["Limit", "Number of Questions", "Số câu"].forEach(key => {
-     if (limitIdx === -1) limitIdx = headers.indexOf(key);
-  });
-  if (limitIdx === -1) limitIdx = 2; // Fallback to column index 2 (C)
+  // Dynamic Column Mapping based on Headers
+  const colMap = {
+    name: 1,      // Default fallback B
+    limit: 2,     // Default fallback C
+    duration: 3,  // Default fallback D
+    status: 4,    // Default fallback E
+    endTime: -1,  // Must be found
+    startTime: -1 // Must be found
+  };
 
-  data.shift(); // Bỏ dòng tiêu đề
-  
-  // Col 4: Status (Active)
-  const activeTests = data
-    .filter(row => String(row[4]).toLowerCase() === 'active') 
-    .map(row => ({
-      name: row[1],      
-      duration: row[3],
-      questionCount: row[limitIdx]
-    }))
-    .reverse(); 
+  headers.forEach((h, i) => {
+    const header = String(h).toLowerCase().trim();
+    if (header === 'test name' || header === 'tên bài thi') colMap.name = i;
+    if (['limit', 'number of questions', 'số câu'].includes(header)) colMap.limit = i;
+    if (header === 'duration' || header === 'thời gian') colMap.duration = i;
+    if (header === 'status' || header === 'trạng thái') colMap.status = i;
+    if (header === 'end time' || header === 'hạn nộp') colMap.endTime = i;
+    if (header === 'start time' || header === 'thời gian bắt đầu' || header === 'bắt đầu') colMap.startTime = i;
+  });
+
+  const now = new Date();
+  const testList = [];
+
+  // Iterate starting from row 1 (skipping header)
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
     
-  return activeTests;
+    // Ensure row has a test name
+    if (!row[colMap.name]) continue;
+
+    let status = String(row[colMap.status] || "").toLowerCase();
+    
+    // --- 1. CHECK START TIME: PENDING -> ACTIVE ---
+    if (status === 'pending' && colMap.startTime > -1) {
+      const startTimeVal = row[colMap.startTime];
+      // Check if it is a valid date and current time >= Start Time
+      if (startTimeVal && (startTimeVal instanceof Date) && !isNaN(startTimeVal.getTime())) {
+        if (now >= startTimeVal) {
+          // Time to start!
+          // Update Sheet: Set Status to 'Active'
+          sheet.getRange(i + 1, colMap.status + 1).setValue('Active');
+          
+          // Update local status so it gets added to the list below
+          status = 'active';
+        }
+      }
+    }
+
+    // --- 2. CHECK END TIME: ACTIVE -> INACTIVE ---
+    if (status === 'active' && colMap.endTime > -1) {
+      const endTimeVal = row[colMap.endTime];
+      // Check if it is a valid date object and the current time is past the end time
+      if (endTimeVal && (endTimeVal instanceof Date) && !isNaN(endTimeVal.getTime())) {
+        if (now > endTimeVal) {
+          // Time is up! 
+          // Update Sheet: Set Status to 'InActive'
+          sheet.getRange(i + 1, colMap.status + 1).setValue('InActive');
+          
+          // Update local status
+          status = 'inactive';
+        }
+      }
+    }
+
+    // Add ALL tests to the list (Active & Inactive & Pending) so Admin can see reports
+    // Pass 'status' to frontend for filtering student view (Students only see 'active')
+    testList.push({
+      name: row[colMap.name],      
+      duration: row[colMap.duration],
+      questionCount: row[colMap.limit],
+      status: status
+    });
+  }
+    
+  return testList.reverse();
 }
 
 function validateAdmin(username, password) {
