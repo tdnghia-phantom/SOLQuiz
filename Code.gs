@@ -465,7 +465,7 @@ function getDiscQuestions(testName) {
   
   const qData = qSheet.getDataRange().getValues();
   const headers = qData[0];
-  const colMap = { id: 0, question: 1, most: 2, least: 3 }; // Default
+  const colMap = { id: 0, question: 1, most: 2, least: 3, fit: -1, nonFit: -1 }; // Default
   
   headers.forEach((h, i) => {
     const header = String(h).toLowerCase().trim();
@@ -473,17 +473,26 @@ function getDiscQuestions(testName) {
     if (header.includes('question') || header.includes('nội dung')) colMap.question = i;
     if (header.includes('most') || header.includes('giống')) colMap.most = i;
     if (header.includes('least') || header.includes('khác')) colMap.least = i;
+    if (header.includes('fit culture') || header.includes('văn hóa')) colMap.fit = i;
+    if (header.includes('critical non-fit') || header.includes('non-fit')) colMap.nonFit = i;
   });
 
   const questions = [];
   for(let i=1; i<qData.length; i++) {
     const row = qData[i];
     if(!row[colMap.id]) continue;
+    
+    // Check flags (X indicates true)
+    const isFit = (colMap.fit > -1) && (String(row[colMap.fit] || "").toUpperCase().trim() === 'X');
+    const isNonFit = (colMap.nonFit > -1) && (String(row[colMap.nonFit] || "").toUpperCase().trim() === 'X');
+
     questions.push({
       id: row[colMap.id],
       content: row[colMap.question],
       mostValue: row[colMap.most],
-      leastValue: row[colMap.least]
+      leastValue: row[colMap.least],
+      isFit: isFit,
+      isNonFit: isNonFit
     });
   }
   return { config: config, questions: questions };
@@ -548,11 +557,26 @@ function submitDiscTest(payload) {
       }
     }
 
+    // Extract calculated culture strings
+    const cultureAnalysis = payload.cultureAnalysis || {};
+    const strMostFit = cultureAnalysis.mostFit || "";
+    const strLeastFit = cultureAnalysis.leastFit || "";
+    const strMostNonFit = cultureAnalysis.mostNonFit || "";
+
     sheetRes.appendRow([
-      newResultId, timestampStr, config.occasion, payload.candidate, payload.position,
-      payload.currentDisc || "", payload.trendDisc || "",
+      newResultId, 
+      timestampStr, 
+      config.occasion, 
+      payload.candidate, 
+      payload.position,
+      payload.currentDisc || "", 
+      payload.trendDisc || "",
       counts.LEAST.D, counts.LEAST.I, counts.LEAST.S, counts.LEAST.C,
-      counts.MOST.D, counts.MOST.I, counts.MOST.S, counts.MOST.C
+      counts.MOST.D, counts.MOST.I, counts.MOST.S, counts.MOST.C,
+      strMostFit,      // Most-Fit Culture (Col 16)
+      strLeastFit,     // Least-Fit Cuture (Col 17)
+      strMostNonFit,   // Most-NonFit Culture (Col 18)
+      ""               // Note (Col 19)
     ]);
   }
 
@@ -571,7 +595,12 @@ function getDiscResultsForAdmin() {
     currentDiscStr: row[5], trendDiscStr: row[6],
     least: { D: row[7], I: row[8], S: row[9], C: row[10] },
     most: { D: row[11], I: row[12], S: row[13], C: row[14] },
-    fitPoint: row[15] || 0, violatePoint: row[16] || 0
+    strMostFit: row[15] || "",
+    strLeastFit: row[16] || "",
+    strMostNonFit: row[17] || "",
+    // Points are now strings, so set default to 0 for chart safety
+    fitPoint: 0, 
+    violatePoint: 0
   })).reverse();
 }
 

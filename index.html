@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -543,7 +544,7 @@
 
   <script>
     // URL Backend Google Apps Script
-    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzC86sJxIT-F1AaOLjvzTREYxrHVfNz8a9tmrjtFGjm_G2aBBMed7d4fumnLG4o4gfLjw/exec";
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxLJA5314NTE8Be0BaKTtQq7ZZJeeF2Jz-yCDw6kPpqIZ_eq5BlYJJThVtn_8Mm8LDX3g/exec";
 
     // --- GRAPH MAPPINGS & VARIABLES ---
     const GRAPH_II_MAPPING = [
@@ -623,6 +624,11 @@
     let discMainInterval = null;
     let discBlockInterval = null;
     let discSelections = {};
+    
+    // DISC CULTURE FIT VARIABLES
+    let strMostFit = "";
+    let strLeastFit = "";
+    let strMostNonFit = "";
     
     // DISC ADMIN STATE
     let discRawData = [];
@@ -1166,6 +1172,12 @@
         toggleLoading(false);
         if(!data || !data.questions || data.questions.length === 0) { alert("Không tải được dữ liệu câu hỏi DISC."); return; }
         discQuestions = data.questions; discSelections = {}; currentDiscBlockIndex = 0;
+        
+        // Reset culture fit vars
+        strMostFit = "";
+        strLeastFit = "";
+        strMostNonFit = "";
+
         totalDiscBlocks = Math.ceil(discQuestions.length / DISC_QUESTIONS_PER_BLOCK);
         document.getElementById('disc-name-display').innerText = document.getElementById('candidate-name').value || "Thí sinh";
         discMainTimeRemaining = (Number(data.config.duration) || 30) * 60;
@@ -1201,6 +1213,7 @@
     function resetDiscTest() {
         document.getElementById('disc-timeout-modal').classList.add('hidden');
         discSelections = {}; currentDiscBlockIndex = 0;
+        strMostFit = ""; strLeastFit = ""; strMostNonFit = "";
         discMainTimeRemaining = (Number(currentDiscConfig.duration) || 7) * 60;
         discBlockTimeRemaining = discBlockDurationConfig;
         updateDiscTimersDisplay(); renderDiscBlock(0); updateDiscStats(); startDiscTimers();
@@ -1261,6 +1274,41 @@
             document.getElementById(`stat-l-${i}`).innerText = counts.LEAST[i];
         }
     }
+    
+    // CALCULATE CULTURE FIT REALTIME
+    function updateCultureVars() {
+        let mfArr = [];
+        let lfArr = [];
+        let mnfArr = [];
+        
+        // Loop through all questions to check current selection state against flags
+        discQuestions.forEach(q => {
+            const qId = String(q.id);
+            const selection = discSelections[qId];
+            
+            if (selection) {
+                // 1. Most-Fit Culture: Fit="X" AND User="MOST"
+                if (q.isFit && selection === 'MOST') {
+                    mfArr.push(q.content);
+                }
+                // 2. Least-Fit Culture: Fit="X" AND User="LEAST"
+                if (q.isFit && selection === 'LEAST') {
+                    lfArr.push(q.content);
+                }
+                // 3. Most-NonFit Culture: NonFit="X" AND User="MOST"
+                if (q.isNonFit && selection === 'MOST') {
+                    mnfArr.push(q.content);
+                }
+            }
+        });
+        
+        strMostFit = mfArr.join('\n');
+        strLeastFit = lfArr.join('\n');
+        strMostNonFit = mnfArr.join('\n');
+        
+        console.log("Updated Culture Vars:", { strMostFit, strLeastFit, strMostNonFit });
+    }
+
     function changeDiscBlock(dir) {
         const start = currentDiscBlockIndex * DISC_QUESTIONS_PER_BLOCK;
         const end = Math.min(start + DISC_QUESTIONS_PER_BLOCK, discQuestions.length);
@@ -1268,11 +1316,19 @@
         for(let i=start; i<end; i++) { if(discSelections[String(discQuestions[i].id)] === 'MOST') m++; if(discSelections[String(discQuestions[i].id)] === 'LEAST') l++; }
         if(m!==1 || l!==1) { document.getElementById('disc-error-msg').classList.remove('hidden'); return; }
         document.getElementById('disc-error-msg').classList.add('hidden');
+        
+        // UPDATE CULTURE VARIABLES ON BLOCK CHANGE (NEXT)
+        updateCultureVars();
+        
         if(currentDiscBlockIndex + dir < totalDiscBlocks) { currentDiscBlockIndex += dir; discBlockTimeRemaining = discBlockDurationConfig; updateDiscTimersDisplay(); renderDiscBlock(currentDiscBlockIndex); }
     }
     function checkAndSubmitDisc() { changeDiscBlock(0); submitDiscTest(); }
     function submitDiscTest() {
         if(discMainInterval) clearInterval(discMainInterval); if(discBlockInterval) clearInterval(discBlockInterval);
+        
+        // UPDATE CULTURE VARIABLES ON SUBMIT
+        updateCultureVars();
+        
         const name = document.getElementById('candidate-name').value; const pos = document.getElementById('candidate-position').value;
         const counts = { MOST: { D: 0, I: 0, S: 0, C: 0 }, LEAST: { D: 0, I: 0, S: 0, C: 0 } };
         const mapValToKey = { 1: 'D', 2: 'I', 3: 'S', 4: 'C' };
@@ -1282,8 +1338,21 @@
         }
         const strLeast = calculateDiscString(counts.LEAST, GRAPH_II_MAPPING, 7);
         const strMost = calculateDiscString(counts.MOST, GRAPH_III_MAPPING, 12);
+        
         toggleLoading(true, "Đang nộp bài DISC...");
-        runBackend('submitDiscTest', { testName: currentTestName, candidate: name || "Unknown", position: pos || "Unknown", selections: discSelections, currentDisc: strLeast, trendDisc: strMost });
+        runBackend('submitDiscTest', { 
+          testName: currentTestName, 
+          candidate: name || "Unknown", 
+          position: pos || "Unknown", 
+          selections: discSelections, 
+          currentDisc: strLeast, 
+          trendDisc: strMost,
+          cultureAnalysis: {
+             mostFit: strMostFit,
+             leastFit: strLeastFit,
+             mostNonFit: strMostNonFit
+          }
+        });
     }
     function showDiscResult(data) {
         toggleLoading(false);
