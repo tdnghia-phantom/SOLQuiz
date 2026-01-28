@@ -334,7 +334,7 @@
                         </div>
                         <div class="overflow-x-auto max-h-[400px]">
                             <table class="w-full text-xs text-left">
-                                <thead class="bg-gray-100 font-bold text-gray-600 sticky top-0"><tr><th class="p-2">Name / Pos</th><th class="p-2">DISC</th><th class="p-2 text-center">Fit</th><th class="p-2 text-center">Violate</th><th class="p-2 text-center">Show</th></tr></thead>
+                                <thead class="bg-gray-100 font-bold text-gray-600 sticky top-0"><tr><th class="p-2">Name / Pos</th><th class="p-2">DISC</th><th class="p-2 text-center">Show</th></tr></thead>
                                 <tbody id="disc-analysis-table-body" class="divide-y"></tbody>
                             </table>
                         </div>
@@ -349,6 +349,41 @@
                         <div id="legend-trend" class="flex flex-wrap gap-2 justify-center mb-4 transition-all duration-300 ease-in-out"></div>
                         <div class="w-full h-[450px] relative"><canvas id="admin-disc-chart-most" class="w-full h-full"></canvas></div>
                     </div>
+                </div>
+            </div>
+            
+            <!-- Culture Fit Analysis -->
+            <div class="bg-white p-6 rounded-xl shadow-lg border-t-4 border-l-4 border-purple-600 mt-8">
+                <h3 class="text-2xl font-bold text-purple-700 mb-6 flex items-center gap-2 border-b-2 border-purple-200 pb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                    Phân tích phù hợp với Văn hóa
+                </h3>
+                <div class="mb-4 flex flex-col md:flex-row gap-2 items-end md:items-center">
+                    <div class="flex-grow w-full md:w-auto">
+                        <div class="flex gap-2">
+                            <input list="disc-culture-candidates-list" id="disc-culture-search-input" class="w-full p-2 border rounded text-sm bg-white focus:ring-2 focus:ring-purple-300 outline-none" placeholder="Nhập tên nhân sự...">
+                            <datalist id="disc-culture-candidates-list"></datalist>
+                            <button onclick="addPersonToCultureAnalysis()" class="bg-purple-600 text-white px-6 py-2 rounded font-bold hover:bg-purple-700 shadow transition flex-shrink-0">Thêm</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left border-collapse border border-gray-200">
+                        <thead class="bg-gray-100 text-purple-900 uppercase text-xs font-bold">
+                            <tr>
+                                <th class="p-3 border border-gray-300 w-1/12 text-center">Name</th>
+                                <th class="p-3 border border-gray-300 w-1/12 text-center">Position</th>
+                                <th class="p-3 border border-gray-300 w-1/12 text-center">C-DISC</th>
+                                <th class="p-3 border border-gray-300 w-1/12 text-center">T-DISC</th>
+                                <th class="p-3 border border-gray-300 w-1/4 text-green-700 bg-green-50 text-center">Most-Fit Culture</th>
+                                <th class="p-3 border border-gray-300 w-1/4 text-yellow-700 bg-yellow-50 text-center">Least-Fit Culture</th>
+                                <th class="p-3 border border-gray-300 w-1/4 text-red-700 bg-red-50 text-center">Most-NonFit Culture</th>
+                            </tr>
+                        </thead>
+                        <tbody id="disc-culture-table-body" class="divide-y divide-gray-200 bg-white">
+                            <!-- Rows will be populated here -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -366,13 +401,12 @@
         <div class="space-y-6">
           <div>
             <label class="block text-xl font-bold text-deepBlue mb-2">Tên - Nickname <span class="text-red-500">*</span></label>
-            <input type="text" id="candidate-name" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-deepBlue focus:outline-none bg-gray-50 text-lg" placeholder="VD: Ms Thư - Ashley" onkeypress="if(event.key === 'Enter') handleStartActualQuiz()">
+            <input type="text" id="candidate-name" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-deepBlue focus:outline-none bg-gray-50 text-lg" placeholder="Ms Thảo - Tracy" onkeypress="if(event.key === 'Enter') handleStartActualQuiz()">
             <span id="error-name" class="hidden text-red-500 text-xs animate-pulse-fast font-bold ml-1 pt-1 block">⚠️ Vui lòng điền Tên/Nickname</span>
           </div>
           <div>
-            <label class="block text-xl font-bold text-deepBlue mb-2">Chức danh hiện tại: <span class="text-red-500">*</span></label>
             <select id="candidate-position" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-deepBlue focus:outline-none bg-gray-50 text-lg">
-                <option value="" disabled selected>-- Chọn chức danh --</option>
+                <option value="" disabled selected>-- Chọn chức danh * --</option>
                 <option value="" disabled>Đang tải danh sách...</option>
             </select>
             <span id="error-position" class="hidden text-red-500 text-xs animate-pulse-fast font-bold ml-1 pt-1 block">⚠️ Vui lòng chọn Chức danh</span>
@@ -569,7 +603,7 @@
 
   <script>
     // URL Backend Google Apps Script
-    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxLJA5314NTE8Be0BaKTtQq7ZZJeeF2Jz-yCDw6kPpqIZ_eq5BlYJJThVtn_8Mm8LDX3g/exec";
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzRD4ha7ARuQvvDXAMuefOityOTutuH2Tg8luj25ibLaG2JdLFobXL5H-aT0jW8Sg1dtA/exec";
 
     // --- GRAPH MAPPINGS & VARIABLES ---
     const GRAPH_II_MAPPING = [
@@ -659,8 +693,13 @@
     let discRawData = [];
     let discFilteredData = [];
     let discSelectedCandidates = []; 
+    let discCultureSelectedCandidates = []; // New state for culture analysis
     let discPieCurrent = null;
     let discPieTrend = null;
+    
+    // New variables for totals
+    let discTotalFit = 0;
+    let discTotalNonFit = 0;
 
     let currentResultDetails = [];
     let currentResultIndex = 0;
@@ -746,7 +785,7 @@
     function populateRoleDropdown(roles) {
       const select = document.getElementById('candidate-position');
       if(!select) return;
-      let html = '<option value="" disabled selected>-- Chọn chức danh --</option>';
+      let html = '<option value="" disabled selected>-- Chọn chức danh * --</option>';
       if (roles && roles.length > 0) {
         roles.forEach(r => {
           html += `<option value="${r}">${r}</option>`;
@@ -1452,8 +1491,15 @@
 
     // --- DISC ADMIN LOGIC ---
     function loadDiscAdminData() { toggleLoading(true, "Đang tải dữ liệu DISC..."); runBackend('getDiscResultsForAdmin'); }
-    function initDiscAdmin(data) {
-        toggleLoading(false); discRawData = data || [];
+    function initDiscAdmin(dataWrapper) {
+        toggleLoading(false); 
+        // Handle new data structure from backend { results: [], meta: {} }
+        discRawData = dataWrapper.results || [];
+        if (dataWrapper.meta) {
+           discTotalFit = dataWrapper.meta.totalFit || 0;
+           discTotalNonFit = dataWrapper.meta.totalNonFit || 0;
+        }
+
         const occasions = [...new Set(discRawData.map(item => item.occasion || ""))].filter(x => x);
         const select = document.getElementById('disc-filter-occasion'); select.innerHTML = '<option value="ALL">Tất cả</option>';
         occasions.forEach(occ => { select.innerHTML += `<option value="${occ}">${occ}</option>`; });
@@ -1485,6 +1531,8 @@
         });
 
         updateCandidateDatalist(); 
+        updateCultureCandidateDatalist(); // NEW
+        
         toggleDiscFilterMode(); 
         processDiscData();
         
@@ -1569,7 +1617,7 @@
             const p = discRawData.find(x => Number(x.id) === id);
             if(p) {
                 people.push(p);
-                tbody.innerHTML += `<tr class="hover:bg-gray-50 border-b"><td class="p-2"><div class="font-bold text-deepBlue">${p.name}</div><div class="text-[10px] text-gray-500">${p.position}</div></td><td class="p-2"><div class="text-[10px]"><span class="text-blue-600 font-bold">C:</span> ${p.currentDiscStr}</div><div class="text-[10px]"><span class="text-orange-600 font-bold">T:</span> ${p.trendDiscStr}</div></td><td class="p-2 text-center text-xs font-bold">${p.fitPoint}</td><td class="p-2 text-center text-xs font-bold text-red-600">${p.violatePoint}</td><td class="p-2 text-center"><input type="checkbox" class="form-checkbox h-4 w-4 text-deepBlue" checked onchange="updateComparisonCharts()" data-id="${p.id}"></td></tr>`;
+                tbody.innerHTML += `<tr class="hover:bg-gray-50 border-b"><td class="p-2"><div class="font-bold text-deepBlue">${p.name}</div><div class="text-[10px] text-gray-500">${p.position}</div></td><td class="p-2"><div class="text-[10px]"><span class="text-blue-600 font-bold">C:</span> ${p.currentDiscStr}</div><div class="text-[10px]"><span class="text-orange-600 font-bold">T:</span> ${p.trendDiscStr}</div></td><td class="p-2 text-center"><input type="checkbox" class="form-checkbox h-4 w-4 text-deepBlue" checked onchange="updateComparisonCharts()" data-id="${p.id}"></td></tr>`;
             }
         });
         updateComparisonCharts();
@@ -1582,6 +1630,69 @@
         drawMultiDiscChart('admin-disc-chart-least', users, 'least', GRAPH_II_MAPPING, { midlineIndex: 7, numRows: 20 }, 'legend-current');
         drawMultiDiscChart('admin-disc-chart-most', users, 'most', GRAPH_III_MAPPING, { midlineIndex: 12, numRows: 22 }, 'legend-trend');
     }
+    
+    // --- CULTURE FIT ANALYSIS FUNCTIONS ---
+    function updateCultureCandidateDatalist() {
+        const datalist = document.getElementById('disc-culture-candidates-list'); datalist.innerHTML = '';
+        discRawData.forEach(item => { 
+            // Only show options not yet added to the culture table
+            if (!discCultureSelectedCandidates.includes(Number(item.id))) {
+                datalist.innerHTML += `<option value="${item.name} | ${item.position}"></option>`;
+            }
+        });
+    }
+    
+    function addPersonToCultureAnalysis() {
+        const input = document.getElementById('disc-culture-search-input'); 
+        const val = input.value.trim(); 
+        if(!val) return;
+        
+        const person = discRawData.find(x => `${x.name} | ${x.position}` === val);
+        if(person && !discCultureSelectedCandidates.includes(Number(person.id))) { 
+            discCultureSelectedCandidates.push(Number(person.id)); 
+            renderCultureTable(); 
+            updateCultureCandidateDatalist(); // Refresh list to remove added person
+        }
+        input.value = "";
+    }
+    
+    function renderCultureTable() {
+        const tbody = document.getElementById('disc-culture-table-body'); 
+        tbody.innerHTML = ''; 
+        
+        discCultureSelectedCandidates.forEach(id => {
+            const p = discRawData.find(x => Number(x.id) === id);
+            if(p) {
+                // Formatting helper
+                const fmt = (s) => (s || "").replace(/\n/g, '<br>• ');
+                const getCount = (str) => str ? str.split('\n').filter(x => x.trim()).length : 0;
+
+                const countMF = getCount(p.strMostFit);
+                const labelMF = `<div class="mb-1 font-bold text-green-800 text-center border-b border-green-200 pb-1">(${countMF}/${discTotalFit})</div>`;
+                const mf = p.strMostFit ? labelMF + '• ' + fmt(p.strMostFit) : labelMF;
+
+                const countLF = getCount(p.strLeastFit);
+                const labelLF = `<div class="mb-1 font-bold text-yellow-800 text-center border-b border-yellow-200 pb-1">(${countLF}/${discTotalFit})</div>`;
+                const lf = p.strLeastFit ? labelLF + '• ' + fmt(p.strLeastFit) : labelLF;
+
+                const countNF = getCount(p.strMostNonFit);
+                const labelNF = `<div class="mb-1 font-bold text-red-800 text-center border-b border-red-200 pb-1">(${countNF}/${discTotalNonFit})</div>`;
+                const mnf = p.strMostNonFit ? labelNF + '• ' + fmt(p.strMostNonFit) : labelNF;
+                
+                tbody.innerHTML += `
+                    <tr class="hover:bg-purple-50 transition-colors border-b">
+                        <td class="p-3 border border-gray-200 font-bold text-deepBlue align-top text-center">${p.name}</td>
+                        <td class="p-3 border border-gray-200 text-xs text-gray-600 align-top text-center">${p.position}</td>
+                        <td class="p-3 border border-gray-200 text-center font-bold text-blue-600 align-top text-center">${p.currentDiscStr}</td>
+                        <td class="p-3 border border-gray-200 text-center font-bold text-orange-600 align-top text-center">${p.trendDiscStr}</td>
+                        <td class="p-3 border border-gray-200 text-xs align-top leading-relaxed text-gray-800 bg-green-50/50">${mf}</td>
+                        <td class="p-3 border border-gray-200 text-xs align-top leading-relaxed text-gray-800 bg-yellow-50/50">${lf}</td>
+                        <td class="p-3 border border-gray-200 text-xs align-top leading-relaxed text-gray-800 bg-red-50/50">${mnf}</td>
+                    </tr>`;
+            }
+        });
+    }
+
     function drawMultiDiscChart(canvasId, users, type, mapping, config, legendId) {
         const canvas = document.getElementById(canvasId); if (!canvas) return; const ctx = canvas.getContext('2d');
         const dpr = window.devicePixelRatio || 1; const parent = canvas.parentElement; canvas.width = parent.clientWidth * dpr; canvas.height = parent.clientHeight * dpr; ctx.scale(dpr, dpr);
@@ -1615,4 +1726,4 @@
     }
   </script>
 </body>
-</html>
+</html>--- END OF FILE index.html ---

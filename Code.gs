@@ -1,4 +1,5 @@
 
+
 // -----------------------------------------------------------------------
 // CẤU HÌNH & THIẾT LẬP (CONFIGURATION)
 // -----------------------------------------------------------------------
@@ -458,7 +459,8 @@ function getDiscTestConfig(testName) {
 }
 
 function getDiscQuestions(testName) {
-  const ss = getDiscSS();
+  // CHANGED: Use History Spreadsheet (InHouse-History) for questions
+  const ss = getHistorySS();
   const config = getDiscTestConfig(testName);
   const qSheet = ss.getSheetByName(DB_SHEETS.DISC_QUESTIONS);
   if (!qSheet) throw new Error("Sheet DISC-Questions not found");
@@ -586,11 +588,12 @@ function submitDiscTest(payload) {
 function getDiscResultsForAdmin() {
   const ss = getHistorySS();
   const sheet = ss.getSheetByName(DB_SHEETS.DISC_RESULTS);
-  if (!sheet) return [];
-  const data = sheet.getDataRange().getValues();
-  data.shift();
+  if (!sheet) return { results: [], meta: { totalFit: 0, totalNonFit: 0 } };
   
-  return data.map(row => ({
+  const data = sheet.getDataRange().getValues();
+  data.shift(); // Remove header
+  
+  const results = data.map(row => ({
     id: row[0], timestamp: row[1], occasion: row[2], name: row[3], position: row[4],
     currentDiscStr: row[5], trendDiscStr: row[6],
     least: { D: row[7], I: row[8], S: row[9], C: row[10] },
@@ -598,10 +601,36 @@ function getDiscResultsForAdmin() {
     strMostFit: row[15] || "",
     strLeastFit: row[16] || "",
     strMostNonFit: row[17] || "",
-    // Points are now strings, so set default to 0 for chart safety
     fitPoint: 0, 
     violatePoint: 0
   })).reverse();
+
+  // CALCULATE META DATA (Total Fit / NonFit counts from DB)
+  let totalFit = 0;
+  let totalNonFit = 0;
+  try {
+    // CHANGED: Use History Spreadsheet (InHouse-History) for questions meta check
+    const discSS = getHistorySS();
+    const qSheet = discSS.getSheetByName(DB_SHEETS.DISC_QUESTIONS);
+    if (qSheet) {
+      const qData = qSheet.getDataRange().getValues();
+      const headers = qData[0];
+      let fIdx = -1, nfIdx = -1;
+      // Dynamic header find
+      headers.forEach((h, i) => {
+         const s = String(h).toLowerCase().trim();
+         if (s.includes('fit culture') || s.includes('văn hóa')) fIdx = i;
+         if (s.includes('critical non-fit') || s.includes('non-fit')) nfIdx = i;
+      });
+      
+      for(let i=1; i<qData.length; i++) {
+         if (fIdx > -1 && String(qData[i][fIdx]).toUpperCase().trim() === 'X') totalFit++;
+         if (nfIdx > -1 && String(qData[i][nfIdx]).toUpperCase().trim() === 'X') totalNonFit++;
+      }
+    }
+  } catch(e) { console.error("Error counting culture totals: " + e.toString()); }
+
+  return { results: results, meta: { totalFit: totalFit, totalNonFit: totalNonFit } };
 }
 
 function getRoleList() {
