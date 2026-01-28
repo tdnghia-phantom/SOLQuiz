@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -590,7 +591,7 @@
 
   <script>
     // URL Backend Google Apps Script
-    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwPjZ-SKl4U3kzeUqbNJWN31asu5GHcnJwTBfVMz1B-wKDX_6W4xgW53wFiuebtRlqO2Q/exec";
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwvcEx8pK127uZ8kHyRJz_VvizJjdywc1wyljfO7mBVK21HfgjUtzGuO_ULyqV_m7cksQ/exec";
 
     // --- GRAPH MAPPINGS & VARIABLES ---
     const GRAPH_II_MAPPING = [
@@ -758,12 +759,21 @@
       tests.forEach(t => {
         const isActive = t.status && t.status.toLowerCase() === 'active';
         const suffix = isActive ? '' : ' [InActive]';
+        
+        // Populate Admin Dropdown
         if (t.type !== 'DISC') {
             const optAdmin = `<option value="${t.name}" data-type="${t.type}">${t.name} (${t.duration} phút - ${t.questionCount} câu)${suffix}</option>`;
             a.insertAdjacentHTML('beforeend', optAdmin);
         }
+        
+        // Populate Student Dropdown (Only Active)
         if (isActive) {
-           const optStudent = `<option value="${t.name}" data-type="${t.type}">${t.name} (${t.duration} phút - ${t.questionCount} câu)</option>`;
+           // Format: Test Name + Occasion Test + Start Time
+           const occasionStr = t.occasion ? ` + ${t.occasion}` : '';
+           const timeStr = t.startTime ? ` + ${t.startTime}` : '';
+           const display = `${t.name}${occasionStr}${timeStr}`;
+           
+           const optStudent = `<option value="${t.name}" data-type="${t.type}">${display}</option>`;
            s.insertAdjacentHTML('beforeend', optStudent);
         }
       });

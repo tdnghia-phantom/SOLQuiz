@@ -19,6 +19,7 @@ const DB_SHEETS = {
   TESTS: 'Tests-Management',    
   BANK: 'Test-Bank',            
   RESULTS: 'Result-Test-History', // Updated Sheet Name
+  QUIZ_ANSWERS: 'Test-Sheet-Answers-Record', // New Sheet for Detailed Answers
   DISC_TESTS: 'DISC-Tests-Management',
   DISC_QUESTIONS: 'DISC-Questions',
   DISC_ANSWERS: 'DISC-Answer-Sheet-Record',
@@ -108,22 +109,23 @@ function doPost(e) {
 function getTestsList() {
   const combinedList = [];
   const now = new Date();
+  const timeZone = Session.getScriptTimeZone();
 
-  // 1. FETCH QUIZ TESTS
+  // 1. FETCH QUIZ TESTS (Tests-Management)
   const ss = getSS();
   const sheet = ss.getSheetByName(DB_SHEETS.TESTS);
   if (sheet) {
     const data = sheet.getDataRange().getValues();
-    // Headers: ID, Test Name, Limit, Duration, Status, End Time, Start Time...
-    // Fallback mapping
-    const colMap = { name: 1, limit: 2, duration: 3, status: 4, endTime: -1, startTime: -1 };
+    // Headers detection
+    const colMap = { name: 1, limit: 2, duration: 3, status: 4, endTime: -1, startTime: -1, occasion: -1, saveAnswer: -1 };
     
-    // Simple dynamic header check
     const headers = data[0];
     headers.forEach((h, i) => {
       const header = String(h).toLowerCase().trim();
       if (header.includes('end time') || header.includes('hạn nộp')) colMap.endTime = i;
       if (header.includes('start time') || header.includes('bắt đầu')) colMap.startTime = i;
+      if (header.includes('save answer') || header.includes('lưu câu trả lời')) colMap.saveAnswer = i;
+      if (header.includes('occassion') || header.includes('occasion') || header.includes('dịp')) colMap.occasion = i;
     });
 
     for (let i = 1; i < data.length; i++) {
@@ -147,12 +149,21 @@ function getTestsList() {
         }
       }
 
+      // Format Start Time for Display
+      let startTimeStr = "";
+      if (colMap.startTime > -1 && row[colMap.startTime] instanceof Date) {
+        startTimeStr = Utilities.formatDate(row[colMap.startTime], timeZone, "dd/MM/yyyy HH:mm");
+      }
+
       combinedList.push({
         type: 'QUIZ',
         name: row[colMap.name],
         duration: row[colMap.duration],
         questionCount: row[colMap.limit],
-        status: status
+        status: status,
+        occasion: (colMap.occasion > -1) ? row[colMap.occasion] : "",
+        saveAnswer: (colMap.saveAnswer > -1) ? row[colMap.saveAnswer] : "",
+        startTime: startTimeStr
       });
     }
   }
@@ -200,6 +211,12 @@ function getTestsList() {
           }
         }
 
+        // Format Start Time for Display
+        let startTimeStr = "";
+        if (colMap.start > -1 && row[colMap.start] instanceof Date) {
+          startTimeStr = Utilities.formatDate(row[colMap.start], timeZone, "dd/MM/yyyy HH:mm");
+        }
+
         combinedList.push({
           type: 'DISC',
           name: row[colMap.name],
@@ -208,7 +225,8 @@ function getTestsList() {
           status: status,
           occasion: row[colMap.occasion],
           blockDuration: row[colMap.blockDuration],
-          saveAnswer: row[colMap.saveAnswer]
+          saveAnswer: row[colMap.saveAnswer],
+          startTime: startTimeStr
         });
       }
     }
@@ -327,6 +345,15 @@ function getQuizData(testName) {
 
   const bankSheet = ss.getSheetByName(DB_SHEETS.BANK);
   const bankData = bankSheet.getDataRange().getValues();
+  
+  // Scan headers to find 'Section' column
+  const headers = bankData[0];
+  let sectionIdx = -1;
+  headers.forEach((h, i) => {
+    const header = String(h).toLowerCase().trim();
+    if(header === 'section' || header === 'phân vùng' || header.includes('kiến thức')) sectionIdx = i;
+  });
+
   bankData.shift(); 
   
   let questions = bankData
@@ -335,7 +362,8 @@ function getQuizData(testName) {
       question: row[2],
       type: row[3],
       choices: [row[4], row[5], row[6], row[7]].filter(c => c !== "" && c !== undefined), 
-      hint: row[8]
+      hint: row[8],
+      section: (sectionIdx > -1) ? String(row[sectionIdx]) : ""
     }));
     
   questions = shuffleArray(questions).slice(0, testConfig.limit);
@@ -348,6 +376,15 @@ function submitQuiz(payload) {
   const ss = getSS(); // Use Choice-Management for Bank & Tests
   const bankSheet = ss.getSheetByName(DB_SHEETS.BANK);
   const bankData = bankSheet.getDataRange().getValues();
+  const historySS = getHistorySS();
+
+  // Detect Section Header in Bank
+  const bankHeaders = bankData[0];
+  let sectionIdx = -1;
+  bankHeaders.forEach((h, i) => {
+    const header = String(h).toLowerCase().trim();
+    if(header === 'section' || header === 'phân vùng' || header.includes('kiến thức')) sectionIdx = i;
+  });
   
   let correctCount = 0;
   const resultDetails = []; 
@@ -357,8 +394,11 @@ function submitQuiz(payload) {
     const qKey = normalizeStr(ans.question);
     const targetRow = bankData.find(row => String(row[1]) === payload.testName && normalizeStr(row[2]) === qKey);
     
+    // Extract Section info
+    const qSection = (sectionIdx > -1 && targetRow) ? String(targetRow[sectionIdx] || "") : "";
+
     if (!targetRow) {
-      resultDetails.push({ question: ans.question, isCorrect: false, userSelected: ans.selected, correctTexts: ["Lỗi"], hint: "" });
+      resultDetails.push({ question: ans.question, isCorrect: false, userSelected: ans.selected, correctTexts: ["Lỗi"], hint: "", section: "" });
       return;
     }
 
@@ -380,17 +420,32 @@ function submitQuiz(payload) {
 
     const correctTexts = correctKeys.map(k => String(optionTexts[keyLabels.indexOf(k)] || ""));
 
-    resultDetails.push({ question: targetRow[2], isCorrect: isCorrect, userSelected: userSelectedArr, correctTexts: correctTexts, hint: hint });
+    resultDetails.push({ question: targetRow[2], isCorrect: isCorrect, userSelected: userSelectedArr, correctTexts: correctTexts, hint: hint, section: qSection });
   });
   
-  // Calculate Bonus
+  // Calculate Bonus & Fetch Occasion & Check Save Answer
   const metaSheet = ss.getSheetByName(DB_SHEETS.TESTS);
   const metaData = metaSheet.getDataRange().getValues();
   let numQuestions = 0, duration = 1;
+  let occasion = "";
+  let saveAnswerConfig = "";
+
+  // Dynamic header check
+  const headers = metaData[0];
+  let occasionIdx = -1;
+  let saveAnsIdx = -1;
+  headers.forEach((h, i) => {
+    const header = String(h).toLowerCase().trim();
+    if (header.includes('occassion') || header.includes('occasion') || header.includes('dịp')) occasionIdx = i;
+    if (header.includes('save answer') || header.includes('lưu câu trả lời')) saveAnsIdx = i;
+  });
+
   for (let i = 1; i < metaData.length; i++) {
     if (metaData[i][1] === payload.testName) {
       numQuestions = Number(metaData[i][2]); 
       duration = Number(metaData[i][3]);     
+      if (occasionIdx > -1) occasion = metaData[i][occasionIdx];
+      if (saveAnsIdx > -1) saveAnswerConfig = String(metaData[i][saveAnsIdx]);
       break;
     }
   }
@@ -399,8 +454,7 @@ function submitQuiz(payload) {
   let bonus = (duration > 0 && numQuestions > 0) ? 0.02 * (numQuestions * timeSaving / duration) : 0;
   const totalResult = (correctCount + bonus).toFixed(2);
   
-  // Save to History Spreadsheet
-  const historySS = getHistorySS();
+  // Save to History Spreadsheet (Summary)
   const resultSheet = historySS.getSheetByName(DB_SHEETS.RESULTS);
   const lastRow = resultSheet.getLastRow();
   let newId = 1;
@@ -409,8 +463,38 @@ function submitQuiz(payload) {
     if (isNaN(newId)) newId = 1;
   }
   
-  resultSheet.appendRow([newId, new Date(), payload.testName, payload.candidate, payload.position, correctCount, timeSaving.toFixed(2), totalResult, payload.hintsUsed || 0]);
+  const now = new Date();
+  resultSheet.appendRow([newId, now, payload.testName, payload.candidate, payload.position, correctCount, timeSaving.toFixed(2), totalResult, payload.hintsUsed || 0, occasion]);
   
+  // Save Detailed Answers if Configured
+  if (saveAnswerConfig.toUpperCase().trim() === 'X') {
+    const answerSheet = historySS.getSheetByName(DB_SHEETS.QUIZ_ANSWERS);
+    if (answerSheet) {
+       const detailRows = [];
+       const timestampStr = Utilities.formatDate(now, Session.getScriptTimeZone(), "dd/MM/yy HH:mm");
+       resultDetails.forEach(d => {
+         const userAnsStr = Array.isArray(d.userSelected) ? d.userSelected.join(", ") : d.userSelected;
+         // Cols: ID | Timestamp | Occasion | TestName | Name | Position | Question | Section | User Answer | Correct | Note
+         detailRows.push([
+           newId,
+           timestampStr,
+           occasion,
+           payload.testName,
+           payload.candidate,
+           payload.position,
+           d.question,
+           d.section,
+           userAnsStr,
+           d.isCorrect ? "X" : "",
+           "" // Note
+         ]);
+       });
+       if(detailRows.length > 0) {
+         answerSheet.getRange(answerSheet.getLastRow() + 1, 1, detailRows.length, detailRows[0].length).setValues(detailRows);
+       }
+    }
+  }
+
   return { score: totalResult, hintsUsed: payload.hintsUsed || 0, details: resultDetails };
 }
 
