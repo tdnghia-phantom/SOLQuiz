@@ -18,7 +18,7 @@ const DB_SHEETS = {
   ACC: 'Acc-Management',        
   TESTS: 'Tests-Management',    
   BANK: 'Test-Bank',            
-  RESULTS: 'Result-Test',
+  RESULTS: 'Result-Test-History', // Updated Sheet Name
   DISC_TESTS: 'DISC-Tests-Management',
   DISC_QUESTIONS: 'DISC-Questions',
   DISC_ANSWERS: 'DISC-Answer-Sheet-Record',
@@ -239,11 +239,13 @@ function validateAdmin(username, password) {
 }
 
 function getTestResults(testName) {
-  const ss = getSS();
-  const resultSheet = ss.getSheetByName(DB_SHEETS.RESULTS);
+  const ss = getSS(); // Choice-Management for Metadata
+  const historySS = getHistorySS(); // History SS for Results
+  
+  const resultSheet = historySS.getSheetByName(DB_SHEETS.RESULTS);
   if (!resultSheet) return { passScore: 0, totalQuestions: 0, duration: 0, results: [] };
   
-  // Metadata fetch
+  // Metadata fetch (from Choice-Management)
   const testSheet = ss.getSheetByName(DB_SHEETS.TESTS);
   const testData = testSheet.getDataRange().getValues();
   let passScore = 0, totalQuestions = 0, duration = 0;
@@ -281,7 +283,7 @@ function getTestResults(testName) {
 }
 
 function getRecentResults(testName) {
-  const ss = getSS();
+  const ss = getHistorySS(); // Use History SS
   const sheet = ss.getSheetByName(DB_SHEETS.RESULTS);
   if (!sheet) return [];
   const data = sheet.getDataRange().getValues();
@@ -343,7 +345,7 @@ function getQuizData(testName) {
 function normalizeStr(str) { return String(str || "").trim().toLowerCase(); }
 
 function submitQuiz(payload) {
-  const ss = getSS();
+  const ss = getSS(); // Use Choice-Management for Bank & Tests
   const bankSheet = ss.getSheetByName(DB_SHEETS.BANK);
   const bankData = bankSheet.getDataRange().getValues();
   
@@ -397,8 +399,9 @@ function submitQuiz(payload) {
   let bonus = (duration > 0 && numQuestions > 0) ? 0.02 * (numQuestions * timeSaving / duration) : 0;
   const totalResult = (correctCount + bonus).toFixed(2);
   
-  // Save
-  const resultSheet = ss.getSheetByName(DB_SHEETS.RESULTS);
+  // Save to History Spreadsheet
+  const historySS = getHistorySS();
+  const resultSheet = historySS.getSheetByName(DB_SHEETS.RESULTS);
   const lastRow = resultSheet.getLastRow();
   let newId = 1;
   if (lastRow > 1) {
@@ -459,8 +462,8 @@ function getDiscTestConfig(testName) {
 }
 
 function getDiscQuestions(testName) {
-  // CHANGED: Use History Spreadsheet (InHouse-History) for questions
-  const ss = getHistorySS();
+  // === MODIFIED HERE: Use History Spreadsheet for Questions ===
+  const ss = getHistorySS(); 
   const config = getDiscTestConfig(testName);
   const qSheet = ss.getSheetByName(DB_SHEETS.DISC_QUESTIONS);
   if (!qSheet) throw new Error("Sheet DISC-Questions not found");
@@ -609,8 +612,8 @@ function getDiscResultsForAdmin() {
   let totalFit = 0;
   let totalNonFit = 0;
   try {
-    // CHANGED: Use History Spreadsheet (InHouse-History) for questions meta check
-    const discSS = getHistorySS();
+    // === MODIFIED HERE: Use History Spreadsheet for Questions ===
+    const discSS = getHistorySS(); 
     const qSheet = discSS.getSheetByName(DB_SHEETS.DISC_QUESTIONS);
     if (qSheet) {
       const qData = qSheet.getDataRange().getValues();

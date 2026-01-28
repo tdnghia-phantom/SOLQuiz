@@ -470,19 +470,6 @@
                     <div class="text-center mb-4"><span class="text-highlight text-xl md:text-2xl uppercase font-bold">DISC Answer Sheet</span><div id="disc-name-display" class="text-2xl font-bold text-gray-800 mt-2 break-words">--</div></div>
                     <hr class="my-4 border-gray-200 w-full">
                     <div class="mb-4"><span class="text-lg font-bold text-highlight uppercase block">Thời gian thực hiện</span><div id="disc-main-timer" class="text-4xl md:text-5xl font-mono font-bold text-deepBlue origin-center transition-transform">00:00</div></div>
-                    <hr class="my-4 border-gray-200 w-full">
-                    <div class="w-full">
-                        <div onclick="toggleDiscStats()" class="cursor-pointer flex justify-center items-center mb-2 group select-none"><h4 class="text-xs font-bold text-gray-400 uppercase group-hover:text-highlight transition">Real-time Statistics</h4></div>
-                        <div id="disc-stats-content" class="bg-gray-100 p-3 rounded-lg border border-gray-200 hidden transition-all duration-300 origin-top">
-                            <table class="w-full text-center text-sm">
-                                <thead><tr class="text-gray-500 text-[10px] font-bold"><th class="pb-1 text-left">Type</th><th class="pb-1">D</th><th class="pb-1">I</th><th class="pb-1">S</th><th class="pb-1">C</th></tr></thead>
-                                <tbody class="font-mono font-bold text-gray-700">
-                                    <tr class="border-b border-gray-200/50"><td class="text-green-600 text-[10px] py-1.5 text-left">MOST</td><td id="stat-m-1">0</td><td id="stat-m-2">0</td><td id="stat-m-3">0</td><td id="stat-m-4">0</td></tr>
-                                    <tr><td class="text-red-600 text-[10px] py-1.5 text-left">LEAST</td><td id="stat-l-1">0</td><td id="stat-l-2">0</td><td id="stat-l-3">0</td><td id="stat-l-4">0</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
                 </div>
             </aside>
             <div class="lg:w-3/4 border-t-4 border-highlight pt-6 relative">
@@ -603,7 +590,7 @@
 
   <script>
     // URL Backend Google Apps Script
-    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzRD4ha7ARuQvvDXAMuefOityOTutuH2Tg8luj25ibLaG2JdLFobXL5H-aT0jW8Sg1dtA/exec";
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwPjZ-SKl4U3kzeUqbNJWN31asu5GHcnJwTBfVMz1B-wKDX_6W4xgW53wFiuebtRlqO2Q/exec";
 
     // --- GRAPH MAPPINGS & VARIABLES ---
     const GRAPH_II_MAPPING = [
@@ -1247,7 +1234,7 @@
         discMainTimeRemaining = (Number(data.config.duration) || 30) * 60;
         discBlockDurationConfig = (Number(data.config.blockDuration) || 2) * 60;
         discBlockTimeRemaining = discBlockDurationConfig;
-        updateDiscTimersDisplay(); updateDiscStats(); renderDiscBlock(0);
+        updateDiscTimersDisplay(); renderDiscBlock(0);
         document.getElementById('quiz-entry-form').classList.add('hidden');
         document.getElementById('disc-interface').classList.remove('hidden');
         document.getElementById('disc-instruction-modal').classList.remove('hidden');
@@ -1263,9 +1250,24 @@
         const m = Math.floor(discMainTimeRemaining / 60); const s = Math.floor(discMainTimeRemaining % 60);
         const el = document.getElementById('disc-main-timer');
         el.innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-        el.classList.toggle('text-red-600', discMainTimeRemaining <= 60);
+        
+        // Alert for Main Timer (<= 60s)
+        if (discMainTimeRemaining <= 60) {
+            el.classList.add('text-red-600', 'animate-pulse', 'scale-110');
+        } else {
+            el.classList.remove('text-red-600', 'animate-pulse', 'scale-110');
+        }
+
         const bm = Math.floor(discBlockTimeRemaining / 60); const bs = Math.floor(discBlockTimeRemaining % 60);
-        document.getElementById('disc-block-timer').innerText = `${bm.toString().padStart(2,'0')}:${bs.toString().padStart(2,'0')}`;
+        const elBlock = document.getElementById('disc-block-timer');
+        elBlock.innerText = `${bm.toString().padStart(2,'0')}:${bs.toString().padStart(2,'0')}`;
+        
+        // Alert for Block Timer (<= 5s)
+        if (discBlockTimeRemaining <= 5) {
+            elBlock.classList.add('text-red-600', 'animate-pulse-fast', 'scale-125');
+        } else {
+            elBlock.classList.remove('text-red-600', 'animate-pulse-fast', 'scale-125');
+        }
     }
     function handleDiscTimeout() {
         // Force submit if possible or show modal
@@ -1280,9 +1282,8 @@
         strMostFit = ""; strLeastFit = ""; strMostNonFit = "";
         discMainTimeRemaining = (Number(currentDiscConfig.duration) || 7) * 60;
         discBlockTimeRemaining = discBlockDurationConfig;
-        updateDiscTimersDisplay(); renderDiscBlock(0); updateDiscStats(); startDiscTimers();
+        updateDiscTimersDisplay(); renderDiscBlock(0); startDiscTimers();
     }
-    function toggleDiscStats() { document.getElementById('disc-stats-content').classList.toggle('hidden'); }
     function renderDiscBlock(blockIndex) {
         const container = document.getElementById('disc-questions-container');
         const start = blockIndex * DISC_QUESTIONS_PER_BLOCK;
@@ -1322,21 +1323,6 @@
         const sibling = document.getElementById(`radio-${otherType}-${qId}`);
         if(sibling && sibling.checked) sibling.checked = false;
         discSelections[qId] = type;
-        updateDiscStats();
-    }
-    function updateDiscStats() {
-        const counts = { MOST: {1:0, 2:0, 3:0, 4:0}, LEAST: {1:0, 2:0, 3:0, 4:0} };
-        for (const [qId, type] of Object.entries(discSelections)) {
-            const q = discQuestions.find(item => String(item.id) === String(qId));
-            if (q) {
-                const val = (type === 'MOST') ? q.mostValue : q.leastValue;
-                if (counts[type][val] !== undefined) counts[type][val]++;
-            }
-        }
-        for (let i = 1; i <= 4; i++) {
-            document.getElementById(`stat-m-${i}`).innerText = counts.MOST[i];
-            document.getElementById(`stat-l-${i}`).innerText = counts.LEAST[i];
-        }
     }
     
     // CALCULATE CULTURE FIT REALTIME
@@ -1726,4 +1712,4 @@
     }
   </script>
 </body>
-</html>--- END OF FILE index.html ---
+</html>
