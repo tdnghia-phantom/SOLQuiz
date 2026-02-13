@@ -1,5 +1,5 @@
 {
-  "name": "SOL Quiz_DISC_Culture Web v2",
-  "description": "SOL Quiz Application lấy ngân hàng đề từ Google Sheet\nQuiz_DISC",
+  "name": "SOL Quiz_DISC_Auth Web PUBv2_4.2.26",
+  "description": "SOL Quiz / DISC test lấy ngân hàng đề từ Google Sheet\nQuiz_DISC_Culure_Phân quyền theo chi nhánh\nBản update: bỏ Culture_Thêm so sánh nhiều kỳ Test DISC của cùng 1 người",
   "requestFramePermissions": []
 }
